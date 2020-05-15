@@ -1,5 +1,5 @@
 # Combinatorial_Games
-Implementation of CGSuite's language CGScript[^1] in Python.
+Implementation of CGSuite's language CGScript<sup>1</sup> in Python.
 
 # Quick Introduction
 
@@ -34,4 +34,4 @@ A Game can be constructed via several different methods. There are methods to co
 There is a method to compare two Games, which is recursive, and so uses the hash values to store previously computed comparisons. There are four possibilities when comparing games, equal to, less than, greater than, fuzzy with.
 
 
-[^1]: CGSuite was designed and developed by Aaron Siegel (asiegel@users.sourceforge.net), for more information, visit [CGSuite](https://www.cgsuite.org).
+<sup>1</sup> CGSuite was designed and developed by Aaron Siegel (asiegel@users.sourceforge.net), for more information, visit [CGSuite](https://www.cgsuite.org).
