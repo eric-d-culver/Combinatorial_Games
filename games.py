@@ -29,12 +29,23 @@ def cmpGames(G,H):
         return 2 # First player win # I wish I had a better value than this
 
 class Game:
-    def __init__(self, LeftOptions, RightOptions):
+    """Combinatorial game class (immutable, hashable)"""
+    def __init__(self, LeftOptions, RightOptions, name):
+        """Should only be directly invoked when you construct the canonical form of a game"""
         self.LeftOptions = LeftOptions
         self.RightOptions = RightOptions
-        # check for dominated options
-        # check for reversible options
-        # generate name
+        self.name = name
 
     def __hash__(self):
+        """Provides a hash value for caching results"""
         return hash(self.name)
+
+    @classmethod
+    def integer(cls, i):
+        """Constructor for integer valued games"""
+        if (i == 0):
+            return cls([],[],"0")
+        if (i > 0):
+            return cls([cls.integer(i-1)],[],str(i))
+        if (i < 0):
+            return cls([],[cls.integer(i+1)],str(i))
