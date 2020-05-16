@@ -1,5 +1,9 @@
 #!/usr/bin/python3
 
+from functools import lru_cache
+
+
+@lru_cache(maxsize=256)
 def cmpGames(G,H):
     goodLeftMove = False
     goodRightMove = False
@@ -40,12 +44,34 @@ class Game:
         """Provides a hash value for caching results"""
         return hash(self.name)
 
+    def __add__(self, other):
+        pass
+
     @classmethod
     def integer(cls, i):
         """Constructor for integer valued games"""
-        if (i == 0):
+        if i == 0:
             return cls([],[],"0")
-        if (i > 0):
+        if i > 0:
             return cls([cls.integer(i-1)],[],str(i))
-        if (i < 0):
+        if i < 0:
             return cls([],[cls.integer(i+1)],str(i))
+    
+    @classmethod
+    def dyadicRational(cls, num, denPow):
+        """Constructor for dyadic rational valued games"""
+        if num % 2 == 0: # numerator is even
+            return cls.dyadicRational(num/2, denPow-1)
+        if denPow == 0: # denominator is 1
+            return cls.integer(num)
+        return cls([cls.dyadicRational(num-1, denPow)],[cls.dyadicRational(num+1, denPow)],str(num)+'/'+'2^'+str(denPow))
+
+    @classmethod
+    def nimber(cls, i):
+        """Constructor for nimber valued games"""
+        if i == 0:
+            return cls.integer(0)
+        lst = []
+        for j in range(i):
+            lst.append(cls.nimber(j))
+        return cls(lst, lst, "*"+str(i))
