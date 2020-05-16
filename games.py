@@ -32,6 +32,11 @@ def cmpGames(G,H):
     if goodLeftMove and goodRightMove:
         return 2 # First player win # I wish I had a better value than this
 
+# this implementation is not very memory efficient (for instance *n uses space O(n^2))
+# what might be better is to have a dictionary as a class variable with the names as keys
+# and a tuple (LeftOptions, RightOptions) as value (where the options are lists of names for games)
+# then instances would only store the name of their Game
+# and the methods would access this class dictionary
 class Game:
     """Combinatorial game class (immutable, hashable)"""
     def __init__(self, LeftOptions, RightOptions, name):
@@ -45,7 +50,17 @@ class Game:
         return hash(self.name)
 
     def __add__(self, other):
-        pass
+        left = []
+        right = []
+        for SL in self.LeftOptions:
+            left.append(SL + other)
+        for OL in other.LeftOptions:
+            left.append(self + OL)
+        for SR in self.RightOptions:
+            right.append(SR + other)
+        for OR in other.RightOptions:
+            right.append(self + OR);
+        return Game.generalGame(left, right)
 
     @classmethod
     def integer(cls, i):
@@ -71,7 +86,35 @@ class Game:
         """Constructor for nimber valued games"""
         if i == 0:
             return cls.integer(0)
+        if i == 1:
+            num = ""
+        else:
+            num = str(i)
         lst = []
         for j in range(i):
             lst.append(cls.nimber(j))
-        return cls(lst, lst, "*"+str(i))
+        return cls(lst, lst, "*"+num)
+
+    @classmethod
+    def upMultiple(cls, n, star):
+        """Constructor for multiples of up, with an optional star added"""
+        if n == 0:
+            return cls.nimber(star)
+        if n == 1:
+            num = ""
+        else:
+            num = str(n)
+        if star:
+            s = ""
+        else:
+            s = "*"
+        if n > 0:
+            return cls([0], [cls.upMultiple(n-1,1-star)],"^"+num+s)
+        if n < 0:
+            return cls([cls.upMultiple(n+1,1-star)], [0],"v"+num+s)
+        pass
+
+    @classmethod
+    def generalGame(cls, left, right):
+        """Constructor for general games. Eliminates dominated options, bypasses reversible options, and generates a name"""
+        pass
