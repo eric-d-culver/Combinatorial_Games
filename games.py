@@ -2,9 +2,9 @@
 
 from functools import lru_cache
 
-
 @lru_cache(maxsize=256)
 def cmpGames(G,H):
+    """returns 0: G == H, 1: G > H, -1: G < H, 2: G || H, Recursive, so caches recent values."""
     goodLeftMove = False
     goodRightMove = False
     for GL in G.LeftOptions:
@@ -55,11 +55,44 @@ class Game:
         self.RightOptions = RightOptions
         self.name = name
 
+    def __repr__(self):
+        return "< Game object " + self.name + " >"
+
+    def __str__(self):
+        return self.name
+
     def __hash__(self):
         """Provides a hash value for caching results"""
         return hash(self.name)
 
+    def __eq__(self, other):
+        """Equality comparison"""
+        return cmpGames(self, other) == 0
+
+    def __lt__(self, other):
+        """Less than comparison"""
+        return cmpGames(self, other) == -1
+
+    def __gt__(self, other):
+        """Greater than comparison"""
+        return cmpGames(self, other) == 1
+
+    def __le__(self, other):
+        """Less than or equal to comparison"""
+        c = cmpGames(self, other)
+        return c == -1 or c == 0
+
+    def __ge__(self, other):
+        """Greater than or equal to comparison"""
+        c = cmpGames(self, other)
+        return c == 1 or c == 0
+
+    def __ne__(Self, other):
+        """Fuzzy comparison""" # is this allowed? What might break?
+        return cmpGames(self, other) == 2
+
     def __add__(self, other):
+        """Addition operator"""
         left = []
         right = []
         for SL in self.LeftOptions:
