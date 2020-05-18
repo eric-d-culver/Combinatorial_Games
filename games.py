@@ -34,12 +34,16 @@ def cmpGames(G,H):
 
 def dominated(lst, lr):
     """Returns strictly dominated options in lst. lr is 1 for Left, -1 for Right"""
+    print("Lst ", lst)
     dominated = []
     for o in lst:
         for oprime in lst:
+            print("Comparing ", o, " and ", oprime)
             if cmpGames(oprime, o) == lr:
+                print(o, " is dominated by ", oprime)
                 dominated.append(o)
                 break
+    print("Dominated ", dominated)
     return dominated
 
 def reversible(left, right):
@@ -89,30 +93,8 @@ class Game:
         return hash(self.name)
 
     def __eq__(self, other):
-        """Equality comparison"""
-        return cmpGames(self, other) == 0
-
-    def __lt__(self, other):
-        """Less than comparison"""
-        return cmpGames(self, other) == -1
-
-    def __gt__(self, other):
-        """Greater than comparison"""
-        return cmpGames(self, other) == 1
-
-    def __le__(self, other):
-        """Less than or equal to comparison"""
-        c = cmpGames(self, other)
-        return c == -1 or c == 0
-
-    def __ge__(self, other):
-        """Greater than or equal to comparison"""
-        c = cmpGames(self, other)
-        return c == 1 or c == 0
-
-    def __ne__(Self, other):
-        """Fuzzy comparison""" # is this allowed? What might break?
-        return cmpGames(self, other) == 2
+        """Equality comparison for caching"""
+        return hash(self.name) == hash(other.name)
 
     def __add__(self, other):
         """Addition operator"""
@@ -185,15 +167,21 @@ class Game:
         """Constructor for general games. Eliminates dominated options, bypasses reversible options, and generates a name"""
         areDominated = True
         areReversible = True
+        print("Left ", left)
+        print("Right ", right)
         while areDominated or areReversible:
             # eliminate dominated options
             left = list(dict.fromkeys(left)) # removes duplicates
             right = list(dict.fromkeys(right)) # removes duplicates
+            print("Left without duplicates ", left)
+            print("Right without duplicates ", right)
             leftDominated = dominated(left, 1)
             rightDominated = dominated(right, -1)
             areDominated = bool(leftDominated) or bool(rightDominated) # false if both lists are empty
             left = [l for l in left if l not in leftDominated]
             right = [r for r in right if r not in rightDominated]
+            print("Left dominated removed ", left)
+            print("Right dominated removed ", right)
             # bypass reversible options (can we do this without creating a Game?)
             leftReversible, leftReversesTo, rightReversible, rightReversesTo = bypassReversible(left, right)
             areReversible = bool(leftReversible) or bool(rightReversible) # false if both lists are empty
@@ -201,5 +189,7 @@ class Game:
             right = [r for r in right if r not in rightReversible]
             left.extend(leftReversesTo)
             right.extend(rightReversesTo)
+            print("Left reversible bypassed ", left)
+            print("Right reversible bypassed ", right)
         # would be nice if common games can be recognized and given the appropriate name
         return cls(left, right, '{' + ', '.join(left) + '|' + ', '.join(right) + '}')
