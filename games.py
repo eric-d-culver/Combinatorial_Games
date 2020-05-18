@@ -52,7 +52,7 @@ def reversible(left, right):
     for GL in G.LeftOptions:
         for GLR in GL.RightOptions:
             c = cmpGames(G, GLR)
-            if c == 1 ot c == 0:
+            if c == 1 or c == 0:
                 leftReversible.append(GL)
                 leftReversesTo.extend(GLR.LeftOptions)
                 break
