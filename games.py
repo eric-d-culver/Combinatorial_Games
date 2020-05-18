@@ -2,7 +2,7 @@
 
 from functools import lru_cache
 
-test = True
+test = False
 
 @lru_cache(maxsize=256)
 def cmpGames(G,H):
@@ -189,10 +189,12 @@ class Game:
         return cls(left, right, '{' + ', '.join(str(l) for l in left) + '|' + ', '.join(str(r) for r in right) + '}')
 
 if test:
+    # dominated options test
     l = [Game.integer(0), Game.integer(0)]
     r = [Game.integer(1), Game.integer(2)]
     g = Game.generalGame(l,r)
-    print(cmpGames(g, Game.dyadicRational(1,1)) == 0)
+    print(cmpGames(g, Game.dyadicRational(1,1)) == 0) # True
+    # reversible options test
     i = [Game.nimber(0), Game.nimber(2)]
     h = Game.generalGame(i,i)
-    print(cmpGames(h, Game.nimber(1)) == 0)
+    print(cmpGames(h, Game.nimber(1)) == 0) # True
