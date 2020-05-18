@@ -33,7 +33,7 @@ def cmpGames(G,H):
         return 2 # First player win # I wish I had a better value than this
 
 def dominated(lst, lr):
-    """Returns dominated options in lst. lr is 1 for Left, -1 for Right"""
+    """Returns strictly dominated options in lst. lr is 1 for Left, -1 for Right"""
     dominated = []
     for o in lst:
         for oprime in lst:
@@ -187,6 +187,8 @@ class Game:
         areReversible = True
         while areDominated or areReversible:
             # eliminate dominated options
+            left = list(dict.fromkeys(left)) # removes duplicates
+            right = list(dict.fromkeys(right)) # removes duplicates
             leftDominated = dominated(left, 1)
             rightDominated = dominated(right, -1)
             areDominated = bool(leftDominated) or bool(rightDominated) # false if both lists are empty
