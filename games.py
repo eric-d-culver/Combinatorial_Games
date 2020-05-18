@@ -2,6 +2,8 @@
 
 from functools import lru_cache
 
+test = True
+
 @lru_cache(maxsize=256)
 def cmpGames(G,H):
     """returns 0: G == H, 1: G > H, -1: G < H, 2: G || H, Recursive, so caches recent values."""
@@ -34,21 +36,17 @@ def cmpGames(G,H):
 
 def dominated(lst, lr):
     """Returns strictly dominated options in lst. lr is 1 for Left, -1 for Right"""
-    print("Lst ", lst)
     dominated = []
     for o in lst:
         for oprime in lst:
-            print("Comparing ", o, " and ", oprime)
             if cmpGames(oprime, o) == lr:
-                print(o, " is dominated by ", oprime)
                 dominated.append(o)
                 break
-    print("Dominated ", dominated)
     return dominated
 
 def reversible(left, right):
     """Returns reversible options, and what they reverse too."""
-    G = Game(left, right, '{'+','.join(left)+'|'+','.join(right)+'}')
+    G = Game(left, right, '{'+','.join(str(l) for l in left)+'|'+','.join(str(r) for r in right)+'}')
     leftReversible = []
     leftReversesTo = []
     rightReversible = []
@@ -123,11 +121,15 @@ class Game:
     @classmethod
     def dyadicRational(cls, num, denPow):
         """Constructor for dyadic rational valued games"""
-        if num % 2 == 0: # numerator is even
-            return cls.dyadicRational(num/2, denPow-1)
         if denPow == 0: # denominator is 1
             return cls.integer(num)
-        return cls([cls.dyadicRational(num-1, denPow)], [cls.dyadicRational(num+1, denPow)], str(num) + '/' + "2^" + str(denPow))
+        if (num % 2) == 0: # numerator is even
+            return cls.dyadicRational(int(num/2), denPow-1)
+        if denPow == 1:
+            den = "2"
+        else:
+            den = "2^" + str(denPow)
+        return cls([cls.dyadicRational(num-1, denPow)], [cls.dyadicRational(num+1, denPow)], str(num) + '/' + den)
 
     @classmethod
     def nimber(cls, i):
@@ -167,29 +169,30 @@ class Game:
         """Constructor for general games. Eliminates dominated options, bypasses reversible options, and generates a name"""
         areDominated = True
         areReversible = True
-        print("Left ", left)
-        print("Right ", right)
         while areDominated or areReversible:
             # eliminate dominated options
             left = list(dict.fromkeys(left)) # removes duplicates
             right = list(dict.fromkeys(right)) # removes duplicates
-            print("Left without duplicates ", left)
-            print("Right without duplicates ", right)
             leftDominated = dominated(left, 1)
             rightDominated = dominated(right, -1)
             areDominated = bool(leftDominated) or bool(rightDominated) # false if both lists are empty
             left = [l for l in left if l not in leftDominated]
             right = [r for r in right if r not in rightDominated]
-            print("Left dominated removed ", left)
-            print("Right dominated removed ", right)
             # bypass reversible options (can we do this without creating a Game?)
-            leftReversible, leftReversesTo, rightReversible, rightReversesTo = bypassReversible(left, right)
+            leftReversible, leftReversesTo, rightReversible, rightReversesTo = reversible(left, right)
             areReversible = bool(leftReversible) or bool(rightReversible) # false if both lists are empty
             left = [l for l in left if l not in leftReversible]
             right = [r for r in right if r not in rightReversible]
             left.extend(leftReversesTo)
             right.extend(rightReversesTo)
-            print("Left reversible bypassed ", left)
-            print("Right reversible bypassed ", right)
         # would be nice if common games can be recognized and given the appropriate name
-        return cls(left, right, '{' + ', '.join(left) + '|' + ', '.join(right) + '}')
+        return cls(left, right, '{' + ', '.join(str(l) for l in left) + '|' + ', '.join(str(r) for r in right) + '}')
+
+if test:
+    l = [Game.integer(0), Game.integer(0)]
+    r = [Game.integer(1), Game.integer(2)]
+    g = Game.generalGame(l,r)
+    print(cmpGames(g, Game.dyadicRational(1,1)) == 0)
+    i = [Game.nimber(0), Game.nimber(2)]
+    h = Game.generalGame(i,i)
+    print(cmpGames(h, Game.nimber(1)) == 0)
