@@ -32,18 +32,38 @@ def cmpGames(G,H):
     if goodLeftMove and goodRightMove:
         return 2 # First player win # I wish I had a better value than this
 
-def removeDominated(lst, lr):
-    """Returns lst with dominated options removed. lr is 1 for Left, -1 for Right"""
+def dominated(lst, lr):
+    """Returns dominated options in lst. lr is 1 for Left, -1 for Right"""
     dominated = []
     for o in lst:
         for oprime in lst:
             if cmpGames(oprime, o) == lr:
                 dominated.append(o)
                 break
-    return [o for o in lst if o not in dominated]
+    return dominated
 
-def bypassReversible(left, right, lr):
-    pass
+def reversible(left, right):
+    """Returns reversible options, and what they reverse too."""
+    G = Game(left, right, '{'+','.join(left)+'|'+','.join(right)+'}')
+    leftReversible = []
+    leftReversesTo = []
+    rightReversible = []
+    rightReversesTo = []
+    for GL in G.LeftOptions:
+        for GLR in GL.RightOptions:
+            c = cmpGames(G, GLR)
+            if c == 1 ot c == 0:
+                leftReversible.append(GL)
+                leftReversesTo.extend(GLR.LeftOptions)
+                break
+    for GR in G.RightOptions:
+        for GRL in GR.LeftOptions:
+            c = cmpGames(G, GRL)
+            if c == -1 or c == 0:
+                rightReversible.append(GR)
+                rightReversesTo.extend(GRL.RightOptions)
+                break
+    return leftReversible, leftReversesTo, rightReversible, rightReversesTo
 
 # this implementation is not very memory efficient (for instance *n uses space O(n^2))
 # what might be better is to have a dictionary as a class variable with the names as keys
@@ -163,9 +183,21 @@ class Game:
     @classmethod
     def generalGame(cls, left, right):
         """Constructor for general games. Eliminates dominated options, bypasses reversible options, and generates a name"""
-        # eliminate dominated options
-        left = removeDominated(left, 1)
-        right = removedDominated(right, -1)
-        # bypass reversible options (can we do this without creating a Game?)
+        areDominated = True
+        areReversible = True
+        while areDominated or areReversible:
+            # eliminate dominated options
+            leftDominated = dominated(left, 1)
+            rightDominated = dominated(right, -1)
+            areDominated = bool(leftDominated) or bool(rightDominated) # false if both lists are empty
+            left = [l for l in left if l not in leftDominated]
+            right = [r for r in right if r not in rightDominated]
+            # bypass reversible options (can we do this without creating a Game?)
+            leftReversible, leftReversesTo, rightReversible, rightReversesTo = bypassReversible(left, right)
+            areReversible = bool(leftReversible) or bool(rightReversible) # false if both lists are empty
+            left = [l for l in left if l not in leftReversible]
+            right = [r for r in right if r not in rightReversible]
+            left.extend(leftReversesTo)
+            right.extend(rightReversesTo)
         # would be nice if common games can be recognized and given the appropriate name
         return cls(left, right, '{' + ', '.join(left) + '|' + ', '.join(right) + '}')
