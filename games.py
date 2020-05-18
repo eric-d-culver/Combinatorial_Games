@@ -42,6 +42,9 @@ def removeDominated(lst, lr):
                 break
     return [o for o in lst if o not in dominated]
 
+def bypassReversible(left, right, lr):
+    pass
+
 # this implementation is not very memory efficient (for instance *n uses space O(n^2))
 # what might be better is to have a dictionary as a class variable with the names as keys
 # and a tuple (LeftOptions, RightOptions) as value (where the options are lists of names for games)
