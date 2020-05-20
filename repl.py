@@ -1,18 +1,22 @@
 #!/usr/bin/python3
 
-from lark import Lark, Transformer
+from lark import Lark, Transformer, GrammarError, Discard
+#from lark.exceptions import GrammarException
 from games import Game, cmpGames
 
-test = True
+test = False
 
 heap = {} # stores variables with assignments. Key is variable name, value is Game variable is assigned to
 
 # READ
 
 grammar = r"""
-?statement: comparison
+?statement: quit_statement 
+         | comparison
          | assignment
          | expression
+
+quit_statement: "quit"
 
 comparison: expression "=" expression -> equal_to
           | expression "<" expression -> less_than
@@ -28,12 +32,15 @@ assignment: name ":=" expression
 name: CNAME
 
 ?expression: "{" list "|" list "}" -> general_game
+          | named_game
           | integer_game
           | dyadic_rational
           | nimber
           | up_multiple
 
 list: [ expression ("," expression)* ]
+
+named_game: CNAME
 
 integer_game: SIGNED_INT
 
@@ -62,6 +69,10 @@ parser = Lark(grammar, start='statement')
 # EVAL
 
 class EvalStatement(Transformer):
+    """Transformer to convert parse tree into appropriate actions."""
+
+    def quit_statement(self, items):
+        raise Discard
 
     def unsigned_integer(self, items):
         return int(items[0])
@@ -86,6 +97,7 @@ class EvalStatement(Transformer):
             return Game.nimber(1)
 
     def ups(self, items, ud, star):
+        """Helper method for up multiples"""
         if items:
             return Game.upMultiple(ud*int(items[0]), star)
         else:
@@ -109,6 +121,13 @@ class EvalStatement(Transformer):
         left, right = items
         return Game.generalGame(left, right)
 
+    def named_game(self, items):
+        if items[0] in heap:
+            return heap[items[0]]
+        else:
+            # variable not assigned
+            raise GrammarError("Variable " + items[0] + " is not defined.")
+
     def name(self, items):
         return str(items[0])
 
@@ -117,6 +136,7 @@ class EvalStatement(Transformer):
         return items[1]
 
     def compare(self, items, lst):
+        """Helper method for all comparisons."""
         return any(l == cmpGames(items[0], items[1]) for l in lst)
 
     def equal_to(self, items):
@@ -143,8 +163,25 @@ class EvalStatement(Transformer):
     def greater_fuzzy(self, items):
         return self.compare(items, [1,2])
 
+def main_loop():
+    exit = False
+    while not exit:
+            statement = input("CGScript> ")
+            tree = parser.parse(statement)
+            try:
+                # PRINT
+                print(EvalStatement().transform(tree))
+            except Discard as e:
+                exit = True
+            except Exception as e:
+                print(e)
+
 if test:
-    tree = parser.parse("g := {0, ^2*,  *17|  1/2^2, 1, v, *}")
+    tree = parser.parse("{0, ^2*,  *17, g|  1/2^2, 1, v, *}")
     print(tree.pretty())
-    print(EvalStatement().transform(tree))
-    print(heap['g'])
+    try:
+        print(EvalStatement().transform(tree))
+    except Exception as e:
+        print(e)
+else:
+    main_loop()
