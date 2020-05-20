@@ -5,7 +5,7 @@ Implementation of CGSuite's language CGScript<sup>1</sup> in Python.
 
 # List of Files
 
-- `rep.py`: Implements the *read-eval-print* loop for the command-line interface
+- `repl.py`: Implements the *read-eval-print* loop for the command-line interface
 - `games.py`: Defines the `Game` class and associated methods
 
 # Detailed Overview
