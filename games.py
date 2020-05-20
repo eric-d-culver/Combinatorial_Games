@@ -157,9 +157,9 @@ class Game:
         else:
             num = str(n)
         if star:
-            s = ''
-        else:
             s = '*'
+        else:
+            s = ''
         if n > 0:
             return cls([cls.integer(0)], [cls.upMultiple(n-1,1-star)], '^' + num + s)
         if n < 0:

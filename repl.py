@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 from lark import Lark, Transformer
-from games import Game
+from games import Game, cmpGames
 
 test = True
 
@@ -83,38 +83,64 @@ class EvalStatement(Transformer):
         else:
             return Game.nimber(1)
 
-    def up_multiple(self, items):
+    def ups(self, items, ud, star):
         if items:
-            return Game.upMultiple(int(items[0]), 0)
+            return Game.upMultiple(ud*int(items[0]), star)
         else:
-            return Game.upMultiple(1, 0)
+            return Game.upMultiple(ud, star)
+
+    def up_multiple(self, items):
+        return self.ups(items, 1, 0)
 
     def upstar_multiple(self, items):
-        if items:
-            return Game.upMultiple(int(items[0]), 1)
-        else:
-            return Game.upMultiple(1, 1)
+        return self.ups(items, 1, 1)
 
     def down_multiple(self, items):
-        if items:
-            return Game.upMultiple(-int(items[0]), 0)
-        else:
-            return Game.upMultiple(-1, 0)
+        return self.ups(items, -1, 0)
 
     def downstar_multiple(self, items):
-        if items:
-            return Game.upMultiple(-int(items[0]), 1)
-        else:
-            return Game.upMultiple(-1, 1)
+        return self.ups(items, -1, 1)
 
     list = list
 
     def general_game(self, items):
-        print(items)
         left, right = items
         return Game.generalGame(left, right)
 
+    def name(self, items):
+        return str(items[0])
+
+    def assignment(self, items):
+        pass
+
+    def compare(self, items, lst):
+        return any(l == cmpGames(items[0], items[1]) for l in lst)
+
+    def equal_to(self, items):
+        return self.compare(items, [0])
+
+    def less_than(self, items):
+        return self.compare(items, [-1])
+
+    def greater_than(self, items):
+        return self.compare(items, [1])
+
+    def fuzzy_with(self, items):
+        return self.compare(items, [2])
+
+    def less_equal(self, items):
+        return self.compare(items, [-1,0])
+
+    def greater_equal(self, items):
+        return self.compare(items, [1,0])
+
+    def less_fuzzy(self, items):
+        return self.compare(items, [-1,2])
+
+    def greater_fuzzy(self, items):
+        return self.compare(items, [1,2])
+
 if test:
-    tree = parser.parse("{0, ^2*,  *17|  1/2^2, 1, v, *}")
+    tree = parser.parse("-2 <| {0, ^2*,  *17|  1/2^2, 1, v, *}")
     print(tree.pretty())
     print(EvalStatement().transform(tree))
