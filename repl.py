@@ -5,6 +5,8 @@ from games import Game, cmpGames
 
 test = True
 
+heap = {} # stores variables with assignments. Key is variable name, value is Game variable is assigned to
+
 # READ
 
 grammar = r"""
@@ -111,7 +113,8 @@ class EvalStatement(Transformer):
         return str(items[0])
 
     def assignment(self, items):
-        pass
+        heap[items[0]] = items[1]
+        return items[1]
 
     def compare(self, items, lst):
         return any(l == cmpGames(items[0], items[1]) for l in lst)
@@ -141,6 +144,7 @@ class EvalStatement(Transformer):
         return self.compare(items, [1,2])
 
 if test:
-    tree = parser.parse("-2 <| {0, ^2*,  *17|  1/2^2, 1, v, *}")
+    tree = parser.parse("g := {0, ^2*,  *17|  1/2^2, 1, v, *}")
     print(tree.pretty())
     print(EvalStatement().transform(tree))
+    print(heap['g'])
