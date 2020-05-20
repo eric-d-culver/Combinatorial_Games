@@ -150,8 +150,10 @@ class Game:
         """Constructor for multiples of up, with an optional star added"""
         if n == 0:
             return cls.nimber(star)
-        if n == 1:
+        if n == 1 or n == -1:
             num = ''
+        elif n < 0:
+            num = str(-n)
         else:
             num = str(n)
         if star:
@@ -159,9 +161,9 @@ class Game:
         else:
             s = '*'
         if n > 0:
-            return cls([0], [cls.upMultiple(n-1,1-star)], '^' + num + s)
+            return cls([cls.integer(0)], [cls.upMultiple(n-1,1-star)], '^' + num + s)
         if n < 0:
-            return cls([cls.upMultiple(n+1,1-star)], [0], 'v' + num + s)
+            return cls([cls.upMultiple(n+1,1-star)], [cls.integer(0)], 'v' + num + s)
         pass
 
     @classmethod

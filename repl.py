@@ -115,6 +115,6 @@ class EvalStatement(Transformer):
         return Game.generalGame(left, right)
 
 if test:
-    tree = parser.parse("{0, ^2*,  *17|  1/2, 1, v, *}")
+    tree = parser.parse("{0, ^2*,  *17|  1/2^2, 1, v, *}")
     print(tree.pretty())
     print(EvalStatement().transform(tree))
