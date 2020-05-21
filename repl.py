@@ -18,7 +18,7 @@ grammar = r"""
 
 quit_statement: "quit"
 
-comparison: expression "=" expression -> equal_to
+comparison: expression "==" expression -> equal_to
           | expression "<" expression -> less_than
           | expression ">" expression -> greater_than
           | expression "<>" expression -> fuzzy_with
@@ -31,12 +31,19 @@ assignment: name ":=" expression
 
 name: CNAME
 
-?expression: "{" list "|" list "}" -> general_game
-          | named_game
-          | integer_game
-          | dyadic_rational
-          | nimber
-          | up_multiple
+?expression: atom
+           | sum
+           | "-" expression -> negation
+
+sum: sum "+" atom
+   | atom
+
+?atom: "{" list "|" list "}" -> general_game
+     | up_multiple
+     | nimber
+     | dyadic_rational
+     | integer_game
+     | named_game
 
 list: [ expression ("," expression)* ]
 
@@ -162,6 +169,15 @@ class EvalStatement(Transformer):
 
     def greater_fuzzy(self, items):
         return self.compare(items, [1,2])
+
+    def sum(self, items):
+        if len(items) > 1: # sum + atom
+            return items[0] + items[1]
+        else: # just atom
+            return items[0]
+
+    def negation(self, items):
+        return -items[0]
 
 def main_loop():
     exit = False

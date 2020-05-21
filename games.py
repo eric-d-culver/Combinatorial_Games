@@ -108,6 +108,15 @@ class Game:
             right.append(self + OR);
         return Game.generalGame(left, right)
 
+    def __neg__(self):
+        neg_l = [-r for r in self.RightOptions]
+        neg_r = [-l for l in self.LeftOptions]
+        if self.name[0] is '-':
+            neg_name = self.name[1:]
+        else:
+            neg_name = '-' + self.name
+        return Game(neg_l, neg_r, neg_name)
+
     @classmethod
     def integer(cls, i):
         """Constructor for integer valued games"""
