@@ -4,6 +4,21 @@ from functools import lru_cache
 
 test = False
 
+def isZero(left, right):
+    return not left and not right
+
+def isPositiveInt(left, right):
+    return not right and all(isPositiveInt(l.LeftOptions, l.RightOptions) or isZero(l.LeftOptions, l.RightOptions) for l in left)
+
+def isNegativeInt(left, right):
+    return not left and all(isNegativeInt(r.LeftOptions, r.RightOptions) or isZero(r.LeftOptions, r.RightOptions) for r in right)
+
+def isDyadicRational(left, right):
+    return False
+
+def isNimber(left, right):
+    return len(left) == len(right) and all(isNimber(l.LeftOptions, l.RightOptions) for l in left) and all(isNimber(r.LeftOptions, r.RightOptions) for r in right)
+
 @lru_cache(maxsize=256)
 def cmpGames(G,H):
     """returns 0: G == H, 1: G > H, -1: G < H, 2: G || H, Recursive, so caches recent values."""
@@ -108,6 +123,9 @@ class Game:
             right.append(self + OR);
         return Game.generalGame(left, right)
 
+    def __sub__(self, other):
+        return self.__add__(-other)
+
     def __neg__(self):
         neg_l = [-r for r in self.RightOptions]
         neg_r = [-l for l in self.LeftOptions]
@@ -169,6 +187,10 @@ class Game:
             s = '*'
         else:
             s = ''
+        if n == 1 and star == 1:
+            return cls([cls.integer(0), cls.nimber(1)], [cls.integer(0)], '^*')
+        if n == -1 and star == 1:
+            return cls([cls.integer(0)], [cls.integer(0), cls.nimber(1)], 'v*')
         if n > 0:
             return cls([cls.integer(0)], [cls.upMultiple(n-1,1-star)], '^' + num + s)
         if n < 0:
@@ -180,6 +202,7 @@ class Game:
         """Constructor for general games. Eliminates dominated options, bypasses reversible options, and generates a name"""
         areDominated = True
         areReversible = True
+        name = ''
         while areDominated or areReversible:
             # eliminate dominated options
             left = list(dict.fromkeys(left)) # removes duplicates
@@ -197,7 +220,21 @@ class Game:
             left.extend(leftReversesTo)
             right.extend(rightReversesTo)
         # would be nice if common games can be recognized and given the appropriate name
-        return cls(left, right, '{' + ', '.join(str(l) for l in left) + '|' + ', '.join(str(r) for r in right) + '}')
+        name = '{' + ','.join(str(l) for l in left) + '|' + ','.join(str(r) for r in right) + '}'
+        if isZero(left, right):
+            name = '0'
+        elif isPositiveInt(left, right):
+            name = str(int(left[0].name) + 1)
+        elif isNegativeInt(left, right):
+            name = str(int(right[0].name) - 1)
+        elif isDyadicRational(left, right):
+            name = ''
+        elif isNimber(left, right):
+            if len(left) == 1:
+                name = '*'
+            else:
+                name = '*' + str(len(left))
+        return cls(left, right, name)
 
 if test:
     # dominated options test
