@@ -37,6 +37,7 @@ additive_expression: additive_expression "+" atom -> sum
                    | atom
 
 ?atom: "{" list "|" list "}" -> general_game
+     | nus
      | up_multiple
      | nimber
      | dyadic_rational
@@ -44,6 +45,11 @@ additive_expression: additive_expression "+" atom -> sum
      | named_game
 
 list: [ expression ("," expression)* ]
+
+nus: number? up_multiple? nimber?
+
+?number: integer_game
+       | dyadic_rational
 
 named_game: CNAME
 
@@ -54,9 +60,7 @@ dyadic_rational: integer "/" "2" ("^" unsigned_integer)?
 nimber: "*" unsigned_integer?
 
 up_multiple: "^" unsigned_integer? -> up_multiple
-           | "^" unsigned_integer? "*" -> upstar_multiple
            | "v" unsigned_integer? -> down_multiple
-           | "v" unsigned_integer? "*" -> downstar_multiple
 
 integer: SIGNED_INT
 
@@ -86,27 +90,27 @@ class EvalStatement(Transformer):
         return int(items[0])
 
     def integer_game(self, items):
-        return Game.integer(int(items[0]))
+        return Game.Integer(int(items[0]))
 
     def dyadic_rational(self, items):
         num, *rest = items
         if rest:
-            return Game.dyadicRational(int(num), int(rest[0]))
+            return Game.DyadicRational(int(num), int(rest[0]))
         else:
-            return Game.dyadicRational(int(num), 1)
+            return Game.DyadicRational(int(num), 1)
 
     def nimber(self, items):
         if items:
-            return Game.nimber(int(items[0]))
+            return Game.Nimber(int(items[0]))
         else:
-            return Game.nimber(1)
+            return Game.Nimber(1)
 
     def ups(self, items, ud, star):
         """Helper method for up multiples"""
         if items:
-            return Game.upMultiple(ud*int(items[0]), star)
+            return Game.UpMultiple(ud*int(items[0]), star)
         else:
-            return Game.upMultiple(ud, star)
+            return Game.UpMultiple(ud, star)
 
     def up_multiple(self, items):
         return self.ups(items, 1, 0)
@@ -124,7 +128,7 @@ class EvalStatement(Transformer):
 
     def general_game(self, items):
         left, right = items
-        return Game.generalGame(left, right)
+        return Game.GeneralGame(left, right)
 
     def named_game(self, items):
         if items[0] in heap:

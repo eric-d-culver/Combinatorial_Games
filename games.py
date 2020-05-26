@@ -111,7 +111,6 @@ def isInfinitesimal(g):
     """returns True if g is an infinitesimal"""
     return LeftStop(g) == 0 and RightStop(g) == 0
 
-
 # all of the following methods assume game is in canonical form
 
 @lru_cache(maxsize=256)
@@ -123,6 +122,13 @@ def isZeroLists(left, right):
     """Version of isZero when game is not created yet"""
     return not left and not right
 
+def checkZeroName(left, right):
+    """checks if uncreated game is zero, and returns the right name if so"""
+    if isZeroLists(left, right):
+        return '0', True
+    else:
+        return '', False
+
 @lru_cache(maxsize=256)
 def isPositiveInt(g):
     """returns True if g is a positive integer"""
@@ -131,6 +137,13 @@ def isPositiveInt(g):
 def isPositiveIntLists(left, right):
     """Version of isPositiveInt when game is not created yet"""
     return not right and all(isPositiveInt(l) or isZero(l) for l in left)
+
+def checkPositiveIntName(left, right):
+    """checks if uncreated game is positive integer, and returns the right name if so,  name if not"""
+    if isPositiveIntLists(left, right):
+        return str(int(left[0].name) + 1), True
+    else:
+        return '', False
 
 @lru_cache(maxsize=256)
 def isNegativeInt(g):
@@ -141,6 +154,13 @@ def isNegativeIntLists(left, right):
     """Version of isNegativeInt when game is not created yet"""
     return not left and all(isNegativeInt(r) or isZero(r) for r in right)
 
+def checkNegativeIntName(left, right):
+    """checks if uncreated game is negative integer, and returns the right name if so,  name if not"""
+    if isNegativeIntLists(left, right):
+        return str(int(right[0].name) - 1), True
+    else:
+        return '', False
+
 @lru_cache(maxsize=256)
 def isDyadicRational(g):
     """returns True if g is a dyadic rational. Only works for short games."""
@@ -150,12 +170,39 @@ def isDyadicRationalLists(left, right):
     """Version of isDyadicRational when game is not created yet"""
     return all(cmpGames(l,r) == -1 for l in left for r in right) and all(isNumber(l) for l in left) and all(isNumber(r) for r in right)  and not isZeroLists(left, right) and not isPositiveIntLists(left, right) and not isNegativeLists(left, right)
 
+def checkDyadicRationalName(left, right):
+    """checks if uncreated game is a dyadic rational, and returns the right name if so,  name if not"""
+    if isDyadicRationalLists(left, right):
+        lst = left[0].name.split('/')
+        num = 2*int(lst[0]) + 1
+        if len(lst) > 1:
+            lst2 = lst[1].split('^')
+            if len(lst2) > 1:
+                denPow = int(lst2[1]) + 1
+            else:
+                denPow = 2
+            return str(num) + '/2^' + str(denPow), True
+        else:
+            denPow = 1
+            return str(num) + '/2', True
+    else:
+        return '', False
+
 @lru_cache(maxsize=256)
 def isNimber(g):
-    return isNimberLists(g.LeftOptions, g.RightOptions)
+    """returns True if g is a nimber"""
+    return isNimberLists(g.LeftOptions, g.RightOptions) # broken
 
 def isNimberLists(left, right):
-    return len(left) == len(right) and all(isNimber(l) for l in left) and all(isNimber(r) for r in right)
+    """Version of isNimber when game is not created yet"""
+    return len(left) == len(right) and all(isNimber(l) for l in left) and all(isNimber(r) for r in right) # broken
+
+def checkNimberName(name, left, right):
+    """checks if uncreated game is a nimber, and returns the right name if so,  name if not"""
+    if isNimbertLists(left, right):
+        return str(int(left[0].name) + 1) # broken
+    else:
+        return name
 
 # this implementation is not very memory efficient (for instance *n uses space O(n^2))
 # what might be better is to have a dictionary as a class variable with the names as keys
@@ -169,12 +216,6 @@ class Game:
         self.LeftOptions = LeftOptions
         self.RightOptions = RightOptions
         self.name = name
-        self.nus = False
-        self.integer = 0
-        self.numerator = 0
-        self.denPow = 0
-        self.nimber = 0
-        self.ups = 0
 
     def __repr__(self):
         return "< Game object " + self.name + " >"
@@ -210,45 +251,22 @@ class Game:
     def __neg__(self):
         neg_l = [-r for r in self.RightOptions]
         neg_r = [-l for l in self.LeftOptions]
+        # neg_name needs to be more complicated -^ = v, etc.
         if self.name[0] is '-':
             neg_name = self.name[1:]
         else:
             neg_name = '-' + self.name
         return Game(neg_l, neg_r, neg_name)
 
-    def setInteger(self, i):
-        self.nus = True
-        self.integer = i
-        self.numerator = i
-        self.denPow = 0
-        return
-
-    def setDyadicRational(n,d):
-        self.nus = True
-        self.numerator = n
-        self.denPow = d
-        return
-
-    def setNimber(n):
-        self.nus = True
-        self.nimber = n
-        return
-
     @classmethod
     def Integer(cls, i):
         """Constructor for integer valued games"""
         if i == 0:
-            res = cls([], [], '0')
-            res.setInteger(0)
-            return res 
+            return cls([], [], '0')
         if i > 0:
-            res = cls([cls.Integer(i-1)], [], str(i))
-            res.setInteger(i)
-            return res
+            return cls([cls.Integer(i-1)], [], str(i))
         if i < 0:
-            res = cls([], [cls.Integer(i+1)], str(i))
-            res.setInteger(i)
-            return res 
+            return cls([], [cls.Integer(i+1)], str(i))
     
     @classmethod
     def DyadicRational(cls, num, denPow):
@@ -261,9 +279,7 @@ class Game:
             den = "2"
         else:
             den = "2^" + str(denPow)
-        res = cls([cls.DyadicRational(num-1, denPow)], [cls.DyadicRational(num+1, denPow)], str(num) + '/' + den)
-        res.setDyadicRational(num, denPow)
-        return res
+        return cls([cls.DyadicRational(num-1, denPow)], [cls.DyadicRational(num+1, denPow)], str(num) + '/' + den)
 
     @classmethod
     def Nimber(cls, i):
@@ -277,13 +293,11 @@ class Game:
         lst = []
         for j in range(i):
             lst.append(cls.Nimber(j))
-        res = cls(lst, lst, '*' + num)
-        res.setNimber(i)
-        return res
+        return cls(lst, lst, '*' + num)
 
     @classmethod
     def UpMultiple(cls, n, star):
-        """Constructor for multiples of up, with an optional star added"""
+        """Constructor for multiples of up, with an optional nimber added"""
         if n == 0:
             return cls.Nimber(star)
         if n == 1 or n == -1:
@@ -292,8 +306,10 @@ class Game:
             num = str(-n)
         else:
             num = str(n)
-        if star:
+        if star == 1:
             s = '*'
+        elif star > 1:
+            s = '*' + str(star)
         else:
             s = ''
         if n == 1 and star == 1:
@@ -301,9 +317,9 @@ class Game:
         if n == -1 and star == 1:
             res = cls([cls.Integer(0)], [cls.Integer(0), cls.Nimber(1)], 'v*')
         if n > 0:
-            res = cls([cls.Integer(0)], [cls.UpMultiple(n-1,1-star)], '^' + num + s)
+            res = cls([cls.Integer(0)], [cls.UpMultiple(n-1,star^1)], '^' + num + s)
         if n < 0:
-            res = cls([cls.UpMultiple(n+1,1-star)], [cls.Integer(0)], 'v' + num + s)
+            res = cls([cls.UpMultiple(n+1,star^1)], [cls.Integer(0)], 'v' + num + s)
         return res
 
     @classmethod
@@ -330,28 +346,32 @@ class Game:
             right.extend(rightReversesTo)
         # would be nice if common games can be recognized and given the appropriate name
         name = '{' + ','.join(str(l) for l in left) + '|' + ','.join(str(r) for r in right) + '}'
-        if isZeroLists(left, right):
-            return cls.Integer(0)
-        elif isPositiveIntLists(left, right):
-            return cls.Integer(left[0].integer + 1)
-        elif isNegativeIntLists(left, right):
-            return cls.Integer(right[0].integer - 1)
-        elif isDyadicRationalLists(left, right):
-            return cls.DyadicRational(2*left[0].numerator + 1, left[0].denPow + 1)
-        elif isNimberLists(left, right):
-            if len(left) == 1:
-                name = '*'
+        newName, v = checkZeroName(left, right)
+        if v:
+            name = newName
+        else:
+            newName, v = checkPositiveIntName(left, right)
+            if v:
+                name = newName
             else:
-                name = '*' + str(len(left))
+                newName, v = checkNegativeIntName(left, right)
+                if v:
+                    name = newName
+                else:
+                    newName, v = checkDyadicRationalName(left, right)
+                    if v:
+                        name = newName
+                    else:
+                        pass
         return cls(left, right, name)
 
 if test:
     # dominated options test
-    l = [Game.integer(0), Game.integer(0)]
-    r = [Game.integer(1), Game.integer(2)]
-    g = Game.generalGame(l,r)
-    print(cmpGames(g, Game.dyadicRational(1,1)) == 0) # True
+    l = [Game.Integer(0), Game.Integer(0)]
+    r = [Game.Integer(1), Game.Integer(2)]
+    g = Game.GeneralGame(l,r)
+    print(cmpGames(g, Game.DyadicRational(1,1)) == 0) # True
     # reversible options test
-    i = [Game.nimber(0), Game.nimber(2)]
-    h = Game.generalGame(i,i)
-    print(cmpGames(h, Game.nimber(1)) == 0) # True
+    i = [Game.Nimber(0), Game.Nimber(2)]
+    h = Game.GeneralGame(i,i)
+    print(cmpGames(h, Game.Nimber(1)) == 0) # True
