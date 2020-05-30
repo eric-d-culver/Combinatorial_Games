@@ -7,31 +7,46 @@ test = False
 @lru_cache(maxsize=256)
 def cmpGames(G,H):
     """returns 0: G == H, 1: G > H, -1: G < H, 2: G || H, Recursive, so caches recent values."""
+    #print(G.name, ' ', H.name)
     goodLeftMove = False
     goodRightMove = False
     for GL in G.LeftOptions:
+        #print('Calling: ', GL, ' ', H)
         cmp = cmpGames(GL,H)
         if cmp is 1 or cmp is 0:
             goodLeftMove = True
+            break
     for HR in H.RightOptions:
+        #print('Calling: ', G, ' ', HR)
         cmp = cmpGames(G,HR)
         if cmp is 1 or cmp is 0:
             goodLeftMove = True
+            break
+    #print('Good Left Move: ', goodLeftMove)
     for GR in G.RightOptions:
+        #print('Calling: ', GR, ' ', H)
         cmp = cmpGames(GR,H)
         if cmp is -1 or cmp is 0:
             goodRightMove = True
+            break
     for HL in H.LeftOptions:
+        #print('Calling: ', G, ' ', HL)
         cmp = cmpGames(G,HL)
         if cmp is -1 or cmp is 0:
             goodRightMove = True
+            break
+    #print('Good Right Move: ', goodRightMove)
     if not goodLeftMove and not goodRightMove:
+        #print('Value: 0')
         return 0 # Second player win
     if goodLeftMove and not goodRightMove:
+        #print('Value: 1')
         return 1 # Left player win
     if not goodLeftMove and goodRightMove:
+        #print('Value: -1')
         return -1 # Right player win
     if goodLeftMove and goodRightMove:
+        #print('Value: 2')
         return 2 # First player win # I wish I had a better value than this
 
 def convertNameToNumber(s):
@@ -89,6 +104,7 @@ def reversible(left, right):
         for GLR in GL.RightOptions:
             c = cmpGames(G, GLR)
             if c == 1 or c == 0:
+                #print(GL, ' reverses to ', GLR)
                 leftReversible.append(GL)
                 leftReversesTo.extend(GLR.LeftOptions)
                 break
@@ -96,6 +112,7 @@ def reversible(left, right):
         for GRL in GR.LeftOptions:
             c = cmpGames(G, GRL)
             if c == -1 or c == 0:
+                #print(GR, ' reverses to ', GRL)
                 rightReversible.append(GR)
                 rightReversesTo.extend(GRL.RightOptions)
                 break
@@ -168,9 +185,9 @@ def isDyadicRational(g):
 
 def isDyadicRationalLists(left, right):
     """Version of isDyadicRational when game is not created yet"""
-    return all(cmpGames(l,r) == -1 for l in left for r in right) and all(isNumber(l) for l in left) and all(isNumber(r) for r in right)  and not isZeroLists(left, right) and not isPositiveIntLists(left, right) and not isNegativeLists(left, right)
+    return all(cmpGames(l,r) == -1 for l in left for r in right) and all(isNumber(l) for l in left) and all(isNumber(r) for r in right)  and not isZeroLists(left, right) and not isPositiveIntLists(left, right) and not isNegativeIntLists(left, right)
 
-def checkDyadicRationalName(left, right):
+def checkDyadicRationalName(left, right): # broken
     """checks if uncreated game is a dyadic rational, and returns the right name if so,  name if not"""
     if isDyadicRationalLists(left, right):
         lst = left[0].name.split('/')
@@ -300,27 +317,85 @@ class Game:
         """Constructor for multiples of up, with an optional nimber added"""
         if n == 0:
             return cls.Nimber(star)
-        if n == 1 or n == -1:
-            num = ''
+        if n == 1:
+            upName = '^'
+        elif n == -1:
+            upName = 'v'
         elif n < 0:
-            num = str(-n)
+            upName = 'v' + str(-n)
         else:
-            num = str(n)
+            upName = '^' + str(n)
         if star == 1:
-            s = '*'
+            sName = '*'
         elif star > 1:
-            s = '*' + str(star)
+            sName = '*' + str(star)
         else:
-            s = ''
+            sName = ''
         if n == 1 and star == 1:
             res = cls([cls.Integer(0), cls.Nimber(1)], [cls.Integer(0)], '^*')
-        if n == -1 and star == 1:
+        elif n == -1 and star == 1:
             res = cls([cls.Integer(0)], [cls.Integer(0), cls.Nimber(1)], 'v*')
-        if n > 0:
-            res = cls([cls.Integer(0)], [cls.UpMultiple(n-1,star^1)], '^' + num + s)
-        if n < 0:
-            res = cls([cls.UpMultiple(n+1,star^1)], [cls.Integer(0)], 'v' + num + s)
+        elif n > 0:
+            res = cls([cls.Integer(0)], [cls.UpMultiple(n-1,star^1)], upName + sName)
+        elif n < 0:
+            res = cls([cls.UpMultiple(n+1,star^1)], [cls.Integer(0)], upName + sName)
         return res
+
+    @classmethod
+    def NumberStar(cls, num, denPow, star):
+        """Constructor for a number, plus some nimber"""
+        number = cls.DyadicRational(num, denPow)
+        if number.name == '0':
+            numName = ''
+        else:
+            numName = number.name
+        if star == 0:
+            return number
+        if star == 1:
+            name = numName + '*'
+        else:
+            name = numName + '*' + str(star)
+        lst = []
+        for j in range(star):
+            lst.append(cls.NumberStar(num, denPow, j))
+        return cls(lst, lst, name)
+
+    @classmethod
+    def NumberUpStar(cls, num, denPow, ups, star):
+        """Constructor for a number, plus some number of ups, plus some nimber"""
+        number = cls.DyadicRational(num, denPow)
+        if number.name == '0':
+            numName = ''
+        else:
+            numName = number.name
+        if ups == 0 and star == 0:
+            return number
+        elif ups == 0:
+            return cls.NumberStar(num, denPow, star)
+        if ups == 1:
+            upName = '^'
+        elif ups == -1:
+            upName = 'v'
+        elif ups > 0:
+            upName = '^' + str(ups)
+        elif ups < 0:
+            upName = 'v' + str(-ups)
+        if star == 0:
+            starName = ''
+        elif star == 1:
+            starName = '*'
+        else:
+            starName = '*' + str(star)
+        name = numName + upName + starName
+        if ups == 1 and star == 1:
+            return cls([number, cls.NumberStar(num, denPow, 1)], [number], name)
+        if ups == -1 and star == 1:
+            return cls([number], [number, cls.NumberStar(num, denPow, 1)], name)
+        if ups > 0:
+            return cls([number], [cls.NumberUpStar(num, denPow, ups-1, star^1)], name)
+        if ups < 0:
+            return cls([cls.NumberUpStar(num, denPow, ups+1, star^1)], [number], name)
+
 
     @classmethod
     def GeneralGame(cls, left, right):
@@ -334,11 +409,14 @@ class Game:
             right = list(dict.fromkeys(right)) # removes duplicates
             leftDominated = dominated(left, 1)
             rightDominated = dominated(right, -1)
+            #print('Dominated: ', leftDominated, ' ', rightDominated)
             areDominated = bool(leftDominated) or bool(rightDominated) # false if both lists are empty
             left = [l for l in left if l not in leftDominated]
             right = [r for r in right if r not in rightDominated]
             # bypass reversible options (can we do this without creating a Game?)
             leftReversible, leftReversesTo, rightReversible, rightReversesTo = reversible(left, right)
+            #print('Reversible: ', leftReversible, ' ', rightReversible)
+            #print('To: ', leftReversesTo, ' ', rightReversesTo)
             areReversible = bool(leftReversible) or bool(rightReversible) # false if both lists are empty
             left = [l for l in left if l not in leftReversible]
             right = [r for r in right if r not in rightReversible]
@@ -358,20 +436,30 @@ class Game:
                 if v:
                     name = newName
                 else:
-                    newName, v = checkDyadicRationalName(left, right)
-                    if v:
-                        name = newName
-                    else:
-                        pass
+                    pass
+                    #newName, v = checkDyadicRationalName(left, right)
+                    #if v:
+                        #name = newName
+                    #else:
+                        #pass
         return cls(left, right, name)
 
 if test:
+    g = Game([Game.UpMultiple(1,1)],[Game.Nimber(1)],'{^*|*}')
+    print(cmpGames(g, Game.Integer(0)))
     # dominated options test
-    l = [Game.Integer(0), Game.Integer(0)]
-    r = [Game.Integer(1), Game.Integer(2)]
-    g = Game.GeneralGame(l,r)
-    print(cmpGames(g, Game.DyadicRational(1,1)) == 0) # True
+    #l = [Game.Integer(0), Game.Integer(0)]
+    #r = [Game.Integer(1), Game.Integer(2)]
+    #g = Game.GeneralGame(l,r)
+    #print(g.name) # 1/2
+    #print(cmpGames(g, Game.DyadicRational(1,1)) == 0) # True
     # reversible options test
-    i = [Game.Nimber(0), Game.Nimber(2)]
-    h = Game.GeneralGame(i,i)
-    print(cmpGames(h, Game.Nimber(1)) == 0) # True
+    #i = [Game.Nimber(0), Game.Nimber(2)]
+    #h = Game.GeneralGame(i,i)
+    #print(h.name) # *
+    #print(cmpGames(h, Game.Nimber(1)) == 0) # True
+    #l = [Game.UpMultiple(1,1)]
+    #r = [Game.UpMultiple(0,1)]
+    #k = Game.GeneralGame(l,r)
+    #print(k.name)
+    #print(cmpGames(h, Game.Integer(0)) == 0) # False

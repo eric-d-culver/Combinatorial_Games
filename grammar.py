@@ -31,22 +31,24 @@ name: CNAME
 ?expression: atom
            | additive_expression
            | "-" expression -> negation
+           | "(" expression ")"
 
 additive_expression: additive_expression "+" atom -> sum
                    | additive_expression "-" atom -> difference
                    | atom
 
 ?atom: "{" list "|" list "}" -> general_game
-     | nus
+     | number
      | up_multiple
      | nimber
-     | dyadic_rational
-     | integer_game
      | named_game
 
 list: [ expression ("," expression)* ]
 
-nus: number? up_multiple? nimber?
+?nus: number up_multiple? nimber -> number_up_star
+    | up_multiple nimber? -> up_star
+    | number
+    | nimber
 
 ?number: integer_game
        | dyadic_rational
@@ -115,14 +117,14 @@ class EvalStatement(Transformer):
     def up_multiple(self, items):
         return self.ups(items, 1, 0)
 
-    def upstar_multiple(self, items):
-        return self.ups(items, 1, 1)
-
     def down_multiple(self, items):
         return self.ups(items, -1, 0)
 
-    def downstar_multiple(self, items):
-        return self.ups(items, -1, 1)
+    def number_up_star(self, items):
+        pass
+
+    def up_star(self, items):
+        return Game.UpMultiple(items[0], items[1])
 
     list = list
 
