@@ -38,20 +38,25 @@ additive_expression: additive_expression "+" atom -> sum
                    | atom
 
 ?atom: "{" list "|" list "}" -> general_game
-     | number
-     | up_multiple
-     | nimber
+     | nus
      | named_game
 
 list: [ expression ("," expression)* ]
 
-?nus: number up_multiple? nimber -> number_up_star
-    | up_multiple nimber? -> up_star
-    | number
+?nus: number up_mult_num nimber_num? -> number_up_star
+    | number nimber_num -> number_star
+    | up_mult_num nimber_num? -> up_star
+    | integer_game
+    | dyadic_rational
     | nimber
 
-?number: integer_game
-       | dyadic_rational
+number: integer
+      | integer "/" "2" ("^" unsigned_integer)? -> fraction
+
+up_mult_num: "^" unsigned_integer? -> up_mult_num
+           | "v" unsigned_integer? -> down_mult_num
+
+nimber_num: "*" unsigned_integer?
 
 named_game: CNAME
 
@@ -79,17 +84,75 @@ parser = Lark(grammar, start='statement')
 
 # EVAL
 
+def debug(name, items):
+    val = False
+    if val:
+        print(name, ' ', items)
+
 class EvalStatement(Transformer):
     """Transformer to convert parse tree into appropriate actions."""
 
     def quit_statement(self, items):
+        debug('quit', items)
         raise Discard
 
     def unsigned_integer(self, items):
+        debug('unsigned_integer', items)
         return int(items[0])
 
     def integer(self, items):
+        debug('integer', items)
         return int(items[0])
+
+    def fraction(self, items):
+        debug('fraction', items)
+        if len(items) > 1:
+            return (int(items[0]), int(items[1])) # integer / 2 ^ unsigned_integer
+        else:
+            return (int(items[0]), 1) # integer / 2
+
+    def number(self, items):
+        debug('number', items)
+        return (int(items[0]), 0) # integer
+
+    def up_mult_num(self, items):
+        debug('up_mult_num', items)
+        if len(items) > 0:
+            return int(items[0])
+        else:
+            return 1
+
+    def down_mult_num(self, items):
+        debug('down_mult_num', items)
+        if len(items) > 0:
+            return -int(items[0])
+        else:
+            return -1
+
+    def nimber_num(self, items):
+        debug('nimber_num', items)
+        if len(items) > 0:
+            return int(items[0])
+        else:
+            return 1
+
+    def number_up_star(self, items):
+        debug('number_up_star', items)
+        if len(items) > 2:
+            return Game.NumberUpStar(int(items[0][0]), int(items[0][1]), int(items[1]), int(items[2]))
+        else: 
+            return Game.NumberUpStar(int(items[0][0]), int(items[0][1]), int(items[1]), 0)
+
+    def number_star(self, items):
+        debug('number_star', items)
+        return Game.NumberStar(int(items[0][0]), int(items[0][1]), int(items[1]))
+
+    def up_star(self, items):
+        debug('up_star', items)
+        if len(items) > 1:
+            return Game.UpMultiple(int(items[0]), int(items[1]))
+        else:
+            return Game.UpMultiple(int(items[0]), 0)
 
     def integer_game(self, items):
         return Game.Integer(int(items[0]))
@@ -102,6 +165,7 @@ class EvalStatement(Transformer):
             return Game.DyadicRational(int(num), 1)
 
     def nimber(self, items):
+        debug('nimber', items)
         if items:
             return Game.Nimber(int(items[0]))
         else:
@@ -115,13 +179,12 @@ class EvalStatement(Transformer):
             return Game.UpMultiple(ud, star)
 
     def up_multiple(self, items):
+        debug('up_multiple', items)
         return self.ups(items, 1, 0)
 
     def down_multiple(self, items):
+        debug('down_multiple', items)
         return self.ups(items, -1, 0)
-
-    def number_up_star(self, items):
-        pass
 
     def up_star(self, items):
         return Game.UpMultiple(items[0], items[1])
@@ -190,5 +253,6 @@ class EvalStatement(Transformer):
             return items[0]
 
     def negation(self, items):
+        debug('negation', items)
         return -items[0]
 

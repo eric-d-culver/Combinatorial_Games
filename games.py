@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 from functools import lru_cache
+from collections import Counter
 
 test = False
 
@@ -187,39 +188,64 @@ def isDyadicRationalLists(left, right):
     """Version of isDyadicRational when game is not created yet"""
     return all(cmpGames(l,r) == -1 for l in left for r in right) and all(isNumber(l) for l in left) and all(isNumber(r) for r in right)  and not isZeroLists(left, right) and not isPositiveIntLists(left, right) and not isNegativeIntLists(left, right)
 
-def checkDyadicRationalName(left, right): # broken
-    """checks if uncreated game is a dyadic rational, and returns the right name if so,  name if not"""
-    if isDyadicRationalLists(left, right):
-        lst = left[0].name.split('/')
-        num = 2*int(lst[0]) + 1
-        if len(lst) > 1:
-            lst2 = lst[1].split('^')
-            if len(lst2) > 1:
-                denPow = int(lst2[1]) + 1
-            else:
-                denPow = 2
-            return str(num) + '/2^' + str(denPow), True
+def extractNumDen(name):
+    """extracts the numerator and denominator power from a dyadic rational name."""
+    lst = name.split('/')
+    if len(lst) > 1:
+        lst2 = lst[1].split('^')
+        if len(lst2) > 1:
+            denPow = int(lst2[1])
         else:
             denPow = 1
-            return str(num) + '/2', True
+    else:
+        denPow = 0
+    return (int(lst[0]), denPow)
+
+def checkDyadicRationalName(left, right):
+    """checks if uncreated game is a dyadic rational, and returns the right name if so,  name if not"""
+    if isDyadicRationalLists(left, right):
+        leftNum, leftDenPow = extractNumDen(left[0].name)
+        rightNum, rightDenPow = extractNumDen(right[0].name)
+        if leftDenPow >= rightDenPow:
+            denPow = leftDenPow + 1
+            num = 2*leftNum + 1
+        else:
+            denPow = rightDenPow + 1
+            num = 2*rightNum - 1
+        if denPow == 1:
+            return str(num) + '/' + '2', True
+        else:
+            return str(num) + '/' + '2^' + str(denPow), True
     else:
         return '', False
 
 @lru_cache(maxsize=256)
 def isNimber(g):
     """returns True if g is a nimber"""
-    return isNimberLists(g.LeftOptions, g.RightOptions) # broken
+    return isNimberLists(g.LeftOptions, g.RightOptions) # better way to do this?
 
 def isNimberLists(left, right):
     """Version of isNimber when game is not created yet"""
-    return len(left) == len(right) and all(isNimber(l) for l in left) and all(isNimber(r) for r in right) # broken
+    return Counter(left) == Counter(right) and all(isNimber(l) for l in left) and all(isNimber(r) for r in right)
 
-def checkNimberName(name, left, right):
-    """checks if uncreated game is a nimber, and returns the right name if so,  name if not"""
-    if isNimbertLists(left, right):
-        return str(int(left[0].name) + 1) # broken
+def extractNimberNum(name):
+    if len(name) > 1:
+        return int(name[1:]) # strip '*' off front of name
+    elif name[0] == '*':
+        return 1
     else:
-        return name
+        return 0
+
+def checkNimberName(left, right):
+    """checks if uncreated game is a nimber, and returns the right name if so"""
+    if isNimberLists(left, right):
+        num = max(extractNimberNum(l.name) for l in left) + 1
+        if num == 1:
+            return '*', True
+        else:
+            return '*' + str(num), True
+    else:
+        return '', False
 
 # this implementation is not very memory efficient (for instance *n uses space O(n^2))
 # what might be better is to have a dictionary as a class variable with the names as keys
@@ -436,12 +462,15 @@ class Game:
                 if v:
                     name = newName
                 else:
-                    pass
-                    #newName, v = checkDyadicRationalName(left, right)
-                    #if v:
-                        #name = newName
-                    #else:
-                        #pass
+                    newName, v = checkDyadicRationalName(left, right)
+                    if v:
+                        name = newName
+                    else:
+                        newName, v = checkNimberName(left, right)
+                        if v:
+                            name = newName
+                        else:
+                            pass # how to check for Number Up Star?
         return cls(left, right, name)
 
 if test:
