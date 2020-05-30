@@ -81,9 +81,20 @@ def rightStop(g):
 @lru_cache(maxsize=256)
 def isNumber(g):
     """returns True if g is a number. Uses the fact that numbers have all negative incentives."""
-    return all(cmpGames(l-g, Game.Integer(0)) == -1 for l in g.LeftOptions) and all(cmpGames(g-r, Game.Integer(0)) == -1 for r in g.RightOptions)
+    return all(cmpGames(l, g) == -1 for l in g.LeftOptions) and all(cmpGames(g, r) == -1 for r in g.RightOptions)
+
+@lru_cache(maxsize=256)
+def isNumberish(g):
+    """returns True if g is a number plus an infinitesimal"""
+    return LeftStop(g) == RightStop(g)
+
+@lru_cache(maxsize=256)
+def isInfinitesimal(g):
+    """returns True if g is an infinitesimal"""
+    return LeftStop(g) == 0 and RightStop(g) == 0
 
 # methods for converting games to canonical form
+
 def dominated(lst, lr):
     """Returns strictly dominated options in lst. lr is 1 for Left, -1 for Right"""
     dominated = []
@@ -119,74 +130,7 @@ def reversible(left, right):
                 break
     return leftReversible, leftReversesTo, rightReversible, rightReversesTo
 
-@lru_cache(maxsize=256)
-def isNumberish(g):
-    """returns True if g is a number plus an infinitesimal"""
-    return LeftStop(g) == RightStop(g)
-
-@lru_cache(maxsize=256)
-def isInfinitesimal(g):
-    """returns True if g is an infinitesimal"""
-    return LeftStop(g) == 0 and RightStop(g) == 0
-
 # all of the following methods assume game is in canonical form
-
-@lru_cache(maxsize=256)
-def isZero(g):
-    """returns True if g is zero"""
-    return not g.LeftOptions and not g.RightOptions
-
-def isZeroLists(left, right):
-    """Version of isZero when game is not created yet"""
-    return not left and not right
-
-def checkZeroName(left, right):
-    """checks if uncreated game is zero, and returns the right name if so"""
-    if isZeroLists(left, right):
-        return '0', True
-    else:
-        return '', False
-
-@lru_cache(maxsize=256)
-def isPositiveInt(g):
-    """returns True if g is a positive integer"""
-    return not g.RightOptions and all(isPositiveInt(l) or isZero(l) for l in g.LeftOptions)
-
-def isPositiveIntLists(left, right):
-    """Version of isPositiveInt when game is not created yet"""
-    return not right and all(isPositiveInt(l) or isZero(l) for l in left)
-
-def checkPositiveIntName(left, right):
-    """checks if uncreated game is positive integer, and returns the right name if so,  name if not"""
-    if isPositiveIntLists(left, right):
-        return str(int(left[0].name) + 1), True
-    else:
-        return '', False
-
-@lru_cache(maxsize=256)
-def isNegativeInt(g):
-    """returns True if g is a negative integer"""
-    return not g.LeftOptions and all(isNegativeInt(r) or isZero(r) for r in g.RightOptions)
-
-def isNegativeIntLists(left, right):
-    """Version of isNegativeInt when game is not created yet"""
-    return not left and all(isNegativeInt(r) or isZero(r) for r in right)
-
-def checkNegativeIntName(left, right):
-    """checks if uncreated game is negative integer, and returns the right name if so,  name if not"""
-    if isNegativeIntLists(left, right):
-        return str(int(right[0].name) - 1), True
-    else:
-        return '', False
-
-@lru_cache(maxsize=256)
-def isDyadicRational(g):
-    """returns True if g is a dyadic rational. Only works for short games."""
-    return isNumber(g) and not isZero(g) and not isPositiveInt(g) and not isNegativeInt(g)
-
-def isDyadicRationalLists(left, right):
-    """Version of isDyadicRational when game is not created yet"""
-    return all(cmpGames(l,r) == -1 for l in left for r in right) and all(isNumber(l) for l in left) and all(isNumber(r) for r in right)  and not isZeroLists(left, right) and not isPositiveIntLists(left, right) and not isNegativeIntLists(left, right)
 
 def extractNumDen(name):
     """extracts the numerator and denominator power from a dyadic rational name."""
@@ -201,9 +145,15 @@ def extractNumDen(name):
         denPow = 0
     return (int(lst[0]), denPow)
 
-def checkDyadicRationalName(left, right):
-    """checks if uncreated game is a dyadic rational, and returns the right name if so,  name if not"""
-    if isDyadicRationalLists(left, right):
+def generateName(left, right):
+    name = '{' + ','.join(str(l) for l in left) + '|' + ','.join(str(r) for r in right) + '}' # default name if nothing else comes up
+    if not left and not right: # zero
+        return '0'
+    elif not right:  # positive integer
+        return str(int(left[0].name) + 1)
+    elif not left: # negative integer
+        return str(int(right[0].name) - 1)
+    elif len(left) == 1 and len(right) == 1 and isNumber(left[0]) and isNumber(right[0]) and cmpGames(left[0], right[0]) == -1: # dyadic rational
         leftNum, leftDenPow = extractNumDen(left[0].name)
         rightNum, rightDenPow = extractNumDen(right[0].name)
         if leftDenPow >= rightDenPow:
@@ -213,11 +163,34 @@ def checkDyadicRationalName(left, right):
             denPow = rightDenPow + 1
             num = 2*rightNum - 1
         if denPow == 1:
-            return str(num) + '/' + '2', True
+            return str(num) + '/' + '2'
         else:
-            return str(num) + '/' + '2^' + str(denPow), True
+            return str(num) + '/' + '2^' + str(denPow)
+    newName, v = checkNimberName(left, right)
+    if v:
+        return newName
     else:
-        return '', False
+        return name
+
+@lru_cache(maxsize=256)
+def isZero(g):
+    """returns True if g is zero"""
+    return not g.LeftOptions and not g.RightOptions
+
+@lru_cache(maxsize=256)
+def isPositiveInt(g):
+    """returns True if g is a positive integer"""
+    return not g.RightOptions and g.LeftOptions
+
+@lru_cache(maxsize=256)
+def isNegativeInt(g):
+    """returns True if g is a negative integer"""
+    return not g.LeftOptions and g.RightOptions
+
+@lru_cache(maxsize=256)
+def isDyadicRational(g):
+    """returns True if g is a dyadic rational."""
+    return len(g.LeftOptions) == 1 and len(g.RightOptions) == 1 and isNumber(g.LeftOptions[0]) and isNumber(g.RightOptions[0]) and cmpGames(g.LeftOptions[0], g.RightOptions[0]) == -1
 
 @lru_cache(maxsize=256)
 def isNimber(g):
@@ -448,29 +421,8 @@ class Game:
             right = [r for r in right if r not in rightReversible]
             left.extend(leftReversesTo)
             right.extend(rightReversesTo)
-        # would be nice if common games can be recognized and given the appropriate name
-        name = '{' + ','.join(str(l) for l in left) + '|' + ','.join(str(r) for r in right) + '}'
-        newName, v = checkZeroName(left, right)
-        if v:
-            name = newName
-        else:
-            newName, v = checkPositiveIntName(left, right)
-            if v:
-                name = newName
-            else:
-                newName, v = checkNegativeIntName(left, right)
-                if v:
-                    name = newName
-                else:
-                    newName, v = checkDyadicRationalName(left, right)
-                    if v:
-                        name = newName
-                    else:
-                        newName, v = checkNimberName(left, right)
-                        if v:
-                            name = newName
-                        else:
-                            pass # how to check for Number Up Star?
+        # recognizes common games and gives them the appropriate name
+        name = generateName(left, right)
         return cls(left, right, name)
 
 if test:
