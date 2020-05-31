@@ -53,8 +53,8 @@ list: [ expression ("," expression)* ]
 number: integer
       | integer "/" "2" ("^" unsigned_integer)? -> fraction
 
-up_mult_num: "^" unsigned_integer? -> up_mult_num
-           | "v" unsigned_integer? -> down_mult_num
+?up_mult_num: "^" unsigned_integer? -> up_mult_num
+            | "v" unsigned_integer? -> down_mult_num
 
 nimber_num: "*" unsigned_integer?
 
@@ -149,7 +149,7 @@ class EvalStatement(Transformer):
 
     def up_star(self, items):
         debug('up_star', items)
-        if len(items) > 1:
+        if len(items) == 2:
             return Game.UpMultiple(int(items[0]), int(items[1]))
         else:
             return Game.UpMultiple(int(items[0]), 0)
@@ -185,9 +185,6 @@ class EvalStatement(Transformer):
     def down_multiple(self, items):
         debug('down_multiple', items)
         return self.ups(items, -1, 0)
-
-    def up_star(self, items):
-        return Game.UpMultiple(items[0], items[1])
 
     list = list
 

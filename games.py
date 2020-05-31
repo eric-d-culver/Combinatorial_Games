@@ -50,6 +50,7 @@ def cmpGames(G,H):
         #print('Value: 2')
         return 2 # First player win # I wish I had a better value than this
 
+@lru_cache(maxsize=256)
 def convertNameToNumber(s):
     """converts the name of number-valued games to their number as integer type"""
     lst = s.split('/')
@@ -63,20 +64,20 @@ def convertNameToNumber(s):
         return int(lst[0])
 
 @lru_cache(maxsize=256)
-def leftStop(g):
+def LeftStop(g):
     """returns the Left Stop of a game as an integer type"""
     if isNumber(g):
         return convertNameToNumber(g.name)
     else:
-        return max(rightStop(l) for l in g.LeftOptions)
+        return max(RightStop(l) for l in g.LeftOptions)
 
 @lru_cache(maxsize=256)
-def rightStop(g):
+def RightStop(g):
     """returns the Right Stop of a game as an integer type"""
     if isNumber(g):
         return convertNameToNumber(g.name)
     else:
-        return min(leftStop(r) for r in g.RightOptions)
+        return min(LeftStop(r) for r in g.RightOptions)
 
 @lru_cache(maxsize=256)
 def isNumber(g):
@@ -92,6 +93,14 @@ def isNumberish(g):
 def isInfinitesimal(g):
     """returns True if g is an infinitesimal"""
     return LeftStop(g) == 0 and RightStop(g) == 0
+
+@lru_cache(maxsize=256)
+def numberPart(g):
+    """returns number g is infinitesimally close to, raises error if g is not Numberish"""
+    if isNumberish(g):
+        return LeftStop(g)
+    else:
+        raise Error
 
 # methods for converting games to canonical form
 
@@ -145,6 +154,48 @@ def extractNumDen(name):
         denPow = 0
     return (int(lst[0]), denPow)
 
+def extractNumberUpStar(name):
+    """extracts the number, up multiple, and nimber value from a number_up_star name"""
+    lst = name.split('^')
+    if len(lst) == 1:
+        lst = name.split('v')
+        if len(lst) == 1: # number star
+            lst = name.split('*')
+            if len(lst) == 1: # number
+                return (name, 0, 0)
+            elif lst[1] == '': # number *
+                return (lst[0], 0, 1)
+            else:
+                return (lst[0], 0, int(lst[1]))
+        else:
+            lst2 = lst[1].split('*')
+            if len(lst2) == 1 and lst2[0] == '': # number v
+                return (lst[0], -1, 0)
+            elif len(lst2) == 1: # number down
+                return (lst[0], -int(lst2[0]), 0)
+            elif lst2[0] == '' and lst2[1] == '': # number v*
+                return (lst[0], -1, 1)
+            elif lst2[0] == '': # number v star
+                return (lst[0], 1, int(lst2[1]))
+            elif lst2[1] == '': # number down *
+                return (lst[0], -int(lst2[0]), 1)
+            else: # number down star
+                return (lst[0], -int(lst2[0]), int(lst2[1]))
+    else:
+        lst2 = lst[1].split('*')
+        if len(lst2) == 1 and lst2[0] == '': # number ^
+            return (lst[0], 1, 0)
+        elif len(lst2) == 1: # number up
+            return (lst[0], int(lst2[0]), 0)
+        elif lst2[0] == '' and lst2[1] == '': # number ^*
+            return (lst[0], 1, 1)
+        elif lst2[0] == '': # number ^ star
+            return (lst[0], 1, int(lst2[1]))
+        elif lst2[1] == '': # number up *
+            return (lst[0], int(lst2[0]), 1)
+        else: # number up star
+            return (lst[0], int(lst2[0]), int(lst2[1]))
+
 def generateName(left, right):
     name = '{' + ','.join(str(l) for l in left) + '|' + ','.join(str(r) for r in right) + '}' # default name if nothing else comes up
     if not left and not right: # zero
@@ -166,6 +217,32 @@ def generateName(left, right):
             return str(num) + '/' + '2'
         else:
             return str(num) + '/' + '2^' + str(denPow)
+    elif isNumberUpStar(Game(left, right, name)):
+        if len(left) == 2: # n^*
+            return right[0].name + '^*'
+        else:
+            number, ups, stars = extractNumberUpStar(right[0].name)
+            if ups == 0 and stars == 1:
+                return number + '^'
+            elif ups == 0: # stars != 0 since that was taken care of above
+                return number + '^*' + str(stars^1)
+            elif stars == 1:
+                return number + '^' + str(ups+1)
+            else:
+                return number + '^' + str(ups+1) + '*' + str(stars^1)
+    elif isNumberDownStar(Game(left, right, name)):
+        if len(right) == 2: # nv*
+            return left[0].name + 'v*'
+        else:
+            number, ups, stars = extractNumberUpStar(left[0].name)
+            if ups == 0 and stars == 1:
+                return number + 'v'
+            elif ups == 0: # stars != 0 since that was taken care of above
+                return number + 'v*' + str(stars^1)
+            elif stars == 1:
+                return number + 'v' + str(-ups+1)
+            else:
+                return number + 'v' + str(-ups+1) + '*' + str(stars^1)
     newName, v = checkNimberName(left, right)
     if v:
         return newName
@@ -191,6 +268,37 @@ def isNegativeInt(g):
 def isDyadicRational(g):
     """returns True if g is a dyadic rational."""
     return len(g.LeftOptions) == 1 and len(g.RightOptions) == 1 and isNumber(g.LeftOptions[0]) and isNumber(g.RightOptions[0]) and cmpGames(g.LeftOptions[0], g.RightOptions[0]) == -1
+
+@lru_cache(maxsize=256)
+def isNumberStar(g):
+    """returns True if g is a number plus a nimber"""
+    if isNumber(g):
+        return True
+    else:
+        number = numberPart(g.LeftOptions[0])
+        return Counter(g.LeftOptions) == Counter(g.RightOptions) and all(isNumberStar(l) for l in g.LeftOptions) and all(numberPart(l) == number for l in g.LeftOptions) # only need to check left since first part guarentees right is identical
+
+@lru_cache(maxsize=256)
+def isNumberUpStar(g):
+    """returns True if g is a number plus a positive number of ups plus a nimber"""
+    if len(g.LeftOptions) == 2 and len(g.RightOptions) == 1 and isNumber(g.RightOptions[0]) and cmpGames(g.LeftOptions[0], g.RightOptions[0]) == 0 and isNumberStar(g.LeftOptions[1]) and numberPart(g.LeftOptions[0]) == numberPart(g.LeftOptions[1]): # {n,n*|n} = n^*
+        return True
+    elif len(g.LeftOptions) == 2 and len(g.RightOptions) == 1 and isNumber(g.RightOptions[0]) and cmpGames(g.LeftOptions[1], g.RightOptions[0]) == 0 and isNumberStar(g.LeftOptions[0]) and numberPart(g.LeftOptions[0]) == numberPart(g.LeftOptions[1]): # {n*,n|n} = n^*
+        return True
+    elif len(g.LeftOptions) == 1 and len(g.RightOptions) == 1 and isNumber(g.LeftOptions[0]) and isNumberStar(g.RightOptions[0]) and not isNumber(g.RightOptions[0]) and numberPart(g.LeftOptions[0]) == numberPart(g.RightOptions[0]):
+        return True
+    return len(g.LeftOptions) == 1 and len(g.RightOptions) == 1 and isNumber(g.LeftOptions[0]) and isNumberUpStar(g.RightOptions[0]) and not isNumber(g.RightOptions[0]) and numberPart(g.RightOptions[0]) == numberPart(g.LeftOptions[0]) # all other cases
+
+@lru_cache(maxsize=256)
+def isNumberDownStar(g):
+    if len(g.RightOptions) == 2 and len(g.LeftOptions) == 1 and isNumber(g.LeftOptions[0]) and cmpGames(g.RightOptions[0], g.LeftOptions[0]) == 0 and isNumberStar(g.RightOptions[1]) and numberPart(g.RightOptions[0]) == numberPart(g.RightOptions[1]): # {n|n,n*} = nv*
+        return True
+    elif len(g.RightOptions) == 2 and len(g.LeftOptions) == 1 and isNumber(g.LeftOptions[0]) and cmpGames(g.RightOptions[1], g.LeftOptions[0]) == 0 and isNumberStar(g.RightOptions[0]) and numberPart(g.RightOptions[0]) == numberPart(g.RightOptions[1]): # {n|n*,n} = nv*
+        return True
+    elif len(g.RightOptions) == 1 and len(g.LeftOptions) == 1 and isNumber(g.RightOptions[0]) and isNumberStar(g.LeftOptions[0]) and not isNumber(g.LeftOptions[0]) and numberPart(g.RightOptions[0]) == numberPart(g.LeftOptions[0]): # {n*|n} = nv
+        return True
+    return len(g.RightOptions) == 1 and len(g.LeftOptions) == 1 and isNumber(g.RightOptions[0]) and isNumberDownStar(g.LeftOptions[0]) and not isNumber(g.LeftOptions[0]) and numberPart(g.LeftOptions[0]) == numberPart(g.RightOptions[0]) # all other cases
+    pass
 
 @lru_cache(maxsize=256)
 def isNimber(g):
