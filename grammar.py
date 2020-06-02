@@ -252,6 +252,7 @@ class EvalStatement(Transformer):
             return items[0]
 
     def difference(self, items):
+        debug('difference', items)
         if len(items) > 1: # difference - atom
             return items[0] - items[1]
         else: # atom

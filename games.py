@@ -403,9 +403,9 @@ class Game:
         return self + (-other)
 
     def __neg__(self):
-        return 0 - self
-        #neg_l = [-r for r in self.RightOptions]
-        #neg_r = [-l for l in self.LeftOptions]
+        neg_l = [-r for r in self.RightOptions]
+        neg_r = [-l for l in self.LeftOptions]
+        return Game.GeneralGame(neg_l, neg_r)
         ## neg_name needs to be more complicated -^ = v, etc.
         #if self.name[0] is '-':
             #neg_name = self.name[1:]
