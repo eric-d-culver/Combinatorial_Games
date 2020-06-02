@@ -90,8 +90,7 @@ parser = Lark(grammar, start='statement')
 # EVAL
 
 def debug(name, items):
-    val = False
-    if val:
+    if False:
         print(name, ' ', items)
 
 class EvalStatement(Transformer):
@@ -198,16 +197,19 @@ class EvalStatement(Transformer):
         return Game.GeneralGame(left, right)
 
     def named_game(self, items):
-        if items[0] in heap:
-            return heap[items[0]]
+        debug('named_game', items)
+        if str(items[0]) in heap:
+            return heap[str(items[0])]
         else:
             # variable not assigned
-            raise GrammarError("Variable " + items[0] + " is not defined.")
+            raise GrammarError("Variable " + str(items[0]) + " is not defined.")
 
     def name(self, items):
+        debug('name', items)
         return str(items[0])
 
     def assignment(self, items):
+        debug('assignment', items)
         heap[items[0]] = items[1]
         return items[1]
 
@@ -243,6 +245,7 @@ class EvalStatement(Transformer):
         return items[0]
 
     def sum(self, items):
+        debug('sum', items)
         if len(items) > 1: # sum + atom
             return items[0] + items[1]
         else: # atom

@@ -312,6 +312,8 @@ def isNumberStar(g):
     """returns True if g is a number plus a nimber"""
     if isNumber(g):
         return True
+    elif not isNumberish(g):
+        return False
     else:
         number = numberPart(g.LeftOptions[0])
         return Counter(g.LeftOptions) == Counter(g.RightOptions) and all(isNumberStar(l) for l in g.LeftOptions) and all(numberPart(l) == number for l in g.LeftOptions) # only need to check left since first part guarentees right is identical
@@ -401,14 +403,15 @@ class Game:
         return self + (-other)
 
     def __neg__(self):
-        neg_l = [-r for r in self.RightOptions]
-        neg_r = [-l for l in self.LeftOptions]
-        # neg_name needs to be more complicated -^ = v, etc.
-        if self.name[0] is '-':
-            neg_name = self.name[1:]
-        else:
-            neg_name = '-' + self.name
-        return Game(neg_l, neg_r, neg_name)
+        return 0 - self
+        #neg_l = [-r for r in self.RightOptions]
+        #neg_r = [-l for l in self.LeftOptions]
+        ## neg_name needs to be more complicated -^ = v, etc.
+        #if self.name[0] is '-':
+            #neg_name = self.name[1:]
+        #else:
+            #neg_name = '-' + self.name
+        #return Game(neg_l, neg_r, neg_name)
 
     @classmethod
     def Integer(cls, i):
