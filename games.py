@@ -273,10 +273,17 @@ def generateName(left, right):
                 return number + 'v' + str(-ups+1) + '*' + str(stars^1)
     elif isNumberStar(Game(left, right, name)):
         if len(left) == 1 and isNumber(left[0]): # {n|n} = n*
-            return left[0].name + '*'
+            if left[0].name == '0':
+                return '*'
+            else:
+                return left[0].name + '*'
         else:
             star = max(extractNumberUpStar(l.name)[2] for l in left) + 1
-            return extractNumberUpStar(left[0].name)[0] + '*' + str(star)
+            number = extractNumberUpStar(left[0].name)[0]
+            if number == '0':
+                return '*' + str(star)
+            else:
+                return number + '*' + str(star)
     else:
         return name
 
