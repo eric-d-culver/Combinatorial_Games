@@ -51,6 +51,20 @@ def cmpGames(G,H):
         return 2 # First player win # I wish I had a better value than this
 
 @lru_cache(maxsize=256)
+def addGames(G, H):
+    left = []
+    right = []
+    for GL in G.LeftOptions:
+        left.append(GL + H)
+    for HL in H.LeftOptions:
+        left.append(G + HL)
+    for GR in G.RightOptions:
+        right.append(GR + H)
+    for HR in H.RightOptions:
+        right.append(G + HR);
+    return Game.GeneralGame(left, right)
+
+@lru_cache(maxsize=256)
 def convertNameToNumber(s):
     """converts the name of number-valued games to their number as integer type"""
     lst = s.split('/')
@@ -219,33 +233,50 @@ def generateName(left, right):
             return str(num) + '/' + '2^' + str(denPow)
     elif isNumberUpStar(Game(left, right, name)):
         if len(left) == 2: # n^*
-            return right[0].name + '^*'
+            if right[0].name == '0':
+                return '^*'
+            else:
+                return right[0].name + '^*'
         else:
             number, ups, stars = extractNumberUpStar(right[0].name)
+            if number == '0':
+                number = ''
             if ups == 0 and stars == 1:
                 return number + '^'
             elif ups == 0: # stars != 0 since that was taken care of above
                 return number + '^*' + str(stars^1)
             elif stars == 1:
                 return number + '^' + str(ups+1)
+            elif stars == 0:
+                return number + '^' + str(ups+1) + '*'
             else:
                 return number + '^' + str(ups+1) + '*' + str(stars^1)
     elif isNumberDownStar(Game(left, right, name)):
         if len(right) == 2: # nv*
-            return left[0].name + 'v*'
+            if left[0].name == '0':
+                return 'v*'
+            else:
+                return left[0].name + 'v*'
         else:
             number, ups, stars = extractNumberUpStar(left[0].name)
+            if number == '0':
+                number = ''
             if ups == 0 and stars == 1:
                 return number + 'v'
             elif ups == 0: # stars != 0 since that was taken care of above
                 return number + 'v*' + str(stars^1)
             elif stars == 1:
                 return number + 'v' + str(-ups+1)
+            elif stars == 0:
+                return number + 'v' + str(-ups+1) + '*'
             else:
                 return number + 'v' + str(-ups+1) + '*' + str(stars^1)
-    newName, v = checkNimberName(left, right)
-    if v:
-        return newName
+    elif isNumberStar(Game(left, right, name)):
+        if len(left) == 1 and isNumber(left[0]): # {n|n} = n*
+            return left[0].name + '*'
+        else:
+            star = max(extractNumberUpStar(l.name)[2] for l in left) + 1
+            return extractNumberUpStar(left[0].name)[0] + '*' + str(star)
     else:
         return name
 
@@ -357,17 +388,7 @@ class Game:
 
     def __add__(self, other):
         """Addition operator"""
-        left = []
-        right = []
-        for SL in self.LeftOptions:
-            left.append(SL + other)
-        for OL in other.LeftOptions:
-            left.append(self + OL)
-        for SR in self.RightOptions:
-            right.append(SR + other)
-        for OR in other.RightOptions:
-            right.append(self + OR);
-        return Game.GeneralGame(left, right)
+        return addGames(self, other)
 
     def __sub__(self, other):
         return self + (-other)

@@ -7,6 +7,11 @@ heap = {} # stores variables with assignments. Key is variable name, value is Ga
 
 # READ
 
+# add '#' for +- switches
+# add '$' for up squared, up cubed, etc.
+# add 'G.U' for Norton Product?
+# how to recognize '1/4', and '1/8', etc? Probably keep internal names the same, might convert back and forth when printing
+
 grammar = r"""
 ?statement: quit_statement 
          | comparison
