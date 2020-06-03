@@ -314,9 +314,11 @@ def isNumberStar(g):
         return True
     elif not isNumberish(g):
         return False
-    else:
+    elif isNumberish(g.LeftOptions[0]):
         number = numberPart(g.LeftOptions[0])
         return Counter(g.LeftOptions) == Counter(g.RightOptions) and all(isNumberStar(l) for l in g.LeftOptions) and all(numberPart(l) == number for l in g.LeftOptions) # only need to check left since first part guarentees right is identical
+    else:
+        return False
 
 @lru_cache(maxsize=256)
 def isNumberUpStar(g):

@@ -8,7 +8,7 @@ test = False
 def main_loop():
     exit = False
     while not exit:
-            statement = input("CGScript> ")
+            statement = input("CGS> ")
             tree = parser.parse(statement)
             try:
                 # PRINT
