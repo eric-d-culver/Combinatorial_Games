@@ -48,12 +48,12 @@ additive_expression: additive_expression "+" atom -> sum
 
 list: [ expression ("," expression)* ]
 
-?nus: number up_mult_num nimber_num? -> number_up_star
-    | number nimber_num -> number_star
-    | up_mult_num nimber_num? -> up_star
+?nus: dyadic_rational
     | integer_game
-    | dyadic_rational
     | nimber
+    | up_mult_num nimber_num? -> up_star
+    | number nimber_num -> number_star
+    | number up_mult_num nimber_num? -> number_up_star
 
 number: integer
       | integer "/" "2" ("^" unsigned_integer)? -> fraction
