@@ -65,6 +65,71 @@ def addGames(G, H):
     return Game.GeneralGame(left, right)
 
 @lru_cache(maxsize=256)
+def heatGame(G, H):
+    if isNumber(G):
+        return G
+    else:
+        left = [heatGame(l, H) + H for l in G.LeftOptions]
+        right = [heatGame(r, H) - H for r in G.RightOptions]
+        return Game.GeneralGame(left, right)
+
+@lru_cache(maxsize=256)
+def overcool(G, H):
+    """Cools G by H without worry about past phase transitions"""
+    if isNumber(G):
+        return G
+    else:
+        left = [overcool(l, H) - H for l in G.LeftOptions]
+        right = [overcool(r, H) + H for r in G.RightOptions]
+        return Game.GeneralGame(left, right)
+
+@lru_cache(maxsize=256)
+def thermalDecomposition(G, grain):
+    """returns a list of tuples giving the infinitesimals emitted by G as it cools, and the temperatures at which they are emitted. 
+    1/2^grain is the size of steps to take when cooling, if the steps skip a phase transition, step is redone with smaller grain."""
+    if isNumber(G):
+        return [(G, 0)]
+    elif isNumberish(G):
+        number = convertNumberToGame(numberPart(G))
+        return [(G - number, 0), (number, 0)]
+    else:
+        decomp = []
+        tempB = G
+        tot = 0
+        step = 2**(-grain)
+        t = Game.DyadicRational(1, grain)
+        while not isNumberish(tempB):
+            tempA = tempB
+            tempB = overcool(tempA, t)
+            print('tempA ', tempA)
+            print('tempB ', tempB)
+            print('heated tempB ', heatGame(tempB, t))
+            inf = tempA - heatGame(tempB, t)
+            print('inf ', inf)
+            if not isInfinitesimal(inf): # we skipped a phase transition, decrease step size (does the rest of decomp at smaller step size. Can we imporve that? Do we want to?)
+                decomp.extend([(i, t + tot) for i, t in thermalDecomposition(tempA, grain+1)]) # have to add the current temperature to tuples of decomp
+                tempB = Game([Game.Integer(1)], [Game.Integer(-1)], '{1|-1}') # to prevent adding extraneous entries to decomp after breaking out of loop (is this necessary?)
+                break # we are done
+            elif not isZero(inf): # phase transition has occured
+                decomp.append((inf, tot))
+            else: # nothing interesting happened, we just cooled down, so nothing to do
+                pass
+            tot += 2**(-grain) # tempB should be G cooled by tot at the end of this loop
+        if isNumberish(tempB): # successful decomp at this step size
+            number = convertNumberToGame(numberPart(tempB))
+            decomp.extend([(tempB - number, tot), (number, tot)])
+        return decomp
+
+@lru_cache(maxsize=256)
+def convertNumberToGame(n):
+    """converts dyadic rational to game. Will loop infinitely if given any other number"""
+    denPow = 0
+    while n % 1 != 0:
+        denPow += 1
+        n *= 2
+    return Game.DyadicRational(int(n), denPow)
+
+@lru_cache(maxsize=256)
 def convertNameToNumber(s):
     """converts the name of number-valued games to their number as integer type"""
     lst = s.split('/')
