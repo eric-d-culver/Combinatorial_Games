@@ -1,7 +1,7 @@
 #/usr/bin/python3
 
 from lark import Lark, Transformer, GrammarError, Discard
-from games import Game, cmpGames
+from games import Game, cmpGames, heatGame, thermalDecomposition
 
 heap = {} # stores variables with assignments. Key is variable name, value is Game variable is assigned to
 
@@ -33,18 +33,21 @@ assignment: name ":=" expression
 
 name: CNAME
 
-?expression: atom
+?expression: term
            | additive_expression
-           | "-" expression -> negation
-           | "(" expression ")"
 
-additive_expression: additive_expression "+" atom -> sum
-                   | additive_expression "-" atom -> difference
-                   | atom
+additive_expression: additive_expression "+" term -> sum
+                   | additive_expression "-" term -> difference
+                   | term
+
+?term: atom
+     | "-" atom -> negation
+     | "$" atom "@" atom -> heating
 
 ?atom: "{" list "|" list "}" -> general_game
      | nus
      | named_game
+     | "(" expression ")"
 
 list: [ expression ("," expression)* ]
 
@@ -261,4 +264,8 @@ class EvalStatement(Transformer):
     def negation(self, items):
         debug('negation', items)
         return -items[0]
+
+    def heating(self, items):
+        debug('heating', items)
+        return heatGame(items[1], items[0])
 
