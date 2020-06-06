@@ -1,5 +1,5 @@
 # Combinatorial_Games
-Implementation of CGSuite's language CGScript<sup>1</sup> in Python.
+A combinatorial games calculator implemented in Python. Chief inspiration is CGScript<sup>1</sup>, though the langage has since diverged.
 
 # Quick Introduction
 
@@ -7,22 +7,25 @@ Implementation of CGSuite's language CGScript<sup>1</sup> in Python.
 
 - `repl.py`: Implements the *read-eval-print* loop for the command-line interface
 - `games.py`: Defines the `Game` class and associated methods
-- `grammar.py`: Defines the grammar for the command-lin interface
+- `grammar.py`: Defines the grammar for the command-line interface
 
 # Detailed Overview
 
-The limited subset of CGScript to be implemented consists of three types of statements:
+The limited language consists of the following types of statements:
 - Expressions: 
     - Game: `{ expression [, expression]* | expression [, expression]* }`
-    - Arithmetic: `[-]* expression [op expression]*` where `op` can be `+` or `-`. (More, such as Cooling and Heating, will be implemented later, eventually.)
+    - Arithmetic: `[-]* expression [op expression]*` where `op` can be `+` or `-`.
+    - Heating: `$ game1 @ game2`, heats `game2` by `game1`
     - Name: common games, numbers, nimbers, up-multiples, or user-defined names.
 - Assignment statements: `name := expression`
 - Comparison statements: `expression <= expression`
+- Thermal Decomposition: `~ game` prints out the thermal decomposition of `game`
+- `quit` to quit
 
 ## Read-Eval-Print Loop
 
 Follows these steps:
-1. Print prompt (probably just `>`).
+1. Print prompt (`CGS>`).
 2. Accepts user input up to end of line.
 3. Parses user input into a series of Python commands
 4. Runs Python commands
