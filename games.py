@@ -101,11 +101,7 @@ def thermalDecomposition(G, grain):
         while not isNumberish(tempB):
             tempA = tempB
             tempB = overcool(tempA, t)
-            print('tempA ', tempA)
-            print('tempB ', tempB)
-            print('heated tempB ', heatGame(tempB, t))
             inf = tempA - heatGame(tempB, t)
-            print('inf ', inf)
             if not isInfinitesimal(inf): # we skipped a phase transition, decrease step size (does the rest of decomp at smaller step size. Can we imporve that? Do we want to?)
                 decomp.extend([(i, t + tot) for i, t in thermalDecomposition(tempA, grain+1)]) # have to add the current temperature to tuples of decomp
                 tempB = Game([Game.Integer(1)], [Game.Integer(-1)], '{1|-1}') # to prevent adding extraneous entries to decomp after breaking out of loop (is this necessary?)

@@ -16,6 +16,7 @@ grammar = r"""
 ?statement: quit_statement 
          | comparison
          | assignment
+         | thermal_decomp
          | expression
 
 quit_statement: "quit"
@@ -30,6 +31,8 @@ comparison: expression "==" expression -> equal_to
           | expression "|>" expression -> greater_fuzzy
 
 assignment: name ":=" expression
+
+thermal_decomp: "~" atom
 
 name: CNAME
 
@@ -102,6 +105,13 @@ class EvalStatement(Transformer):
     def quit_statement(self, items):
         debug('quit', items)
         raise Discard
+
+    def thermal_decomp(self, items):
+        res = ""
+        decomp = thermalDecomposition(items[0], 0)
+        for inf, temp in decomp:
+            res += "$" + str(temp) + "@" + str(inf) + " + " # could be prettier
+        return res[:-2]
 
     def unsigned_integer(self, items):
         debug('unsigned_integer', items)
