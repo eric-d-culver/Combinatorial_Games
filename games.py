@@ -84,37 +84,42 @@ def overcool(G, H):
         return Game.GeneralGame(left, right)
 
 @lru_cache(maxsize=256)
-def thermalDecomposition(G, grain):
-    """returns a list of tuples giving the infinitesimals emitted by G as it cools, and the temperatures at which they are emitted. 
-    1/2^grain is the size of steps to take when cooling, if the steps skip a phase transition, step is redone with smaller grain."""
+def thermalDecomposition(G):
+    """returns a list of tuples giving the infinitesimals emitted by G as it cools, and the temperatures at which they are emitted."""
+    decomp = []
     if isNumber(G):
         return [(G, 0)]
-    elif isNumberish(G):
-        number = convertNumberToGame(numberPart(G))
-        return [(G - number, 0), (number, 0)]
-    else:
-        decomp = []
-        tempB = G
-        tot = 0
-        step = 2**(-grain)
-        t = Game.DyadicRational(1, grain)
-        while not isNumberish(tempB):
-            tempA = tempB
-            tempB = overcool(tempA, t)
-            inf = tempA - heatGame(tempB, t)
-            if not isInfinitesimal(inf): # we skipped a phase transition, decrease step size (does the rest of decomp at smaller step size. Can we imporve that? Do we want to?)
-                decomp.extend([(i, t + tot) for i, t in thermalDecomposition(tempA, grain+1)]) # have to add the current temperature to tuples of decomp
-                tempB = Game([Game.Integer(1)], [Game.Integer(-1)], '{1|-1}') # to prevent adding extraneous entries to decomp after breaking out of loop (is this necessary?)
-                break # we are done
-            elif not isZero(inf): # phase transition has occured
-                decomp.append((inf, tot))
-            else: # nothing interesting happened, we just cooled down, so nothing to do
-                pass
-            tot += 2**(-grain) # tempB should be G cooled by tot at the end of this loop
-        if isNumberish(tempB): # successful decomp at this step size
-            number = convertNumberToGame(numberPart(tempB))
-            decomp.extend([(tempB - number, tot), (number, tot)])
-        return decomp
+    while not isNumber(G):
+        print('G ', G)
+        denPow = 0 
+        num = 0 # num/2^denPow is total temperature cooled
+        tempA = tempB = G
+        while not (isNumberish(tempB) and not isNumber(tempB)):
+            #print('temp ', num/(2**denPow))
+            #print('step ', 2**(-denPow))
+            #print('tempA ', tempA)
+            #print('tempB ', tempB)
+            if isNumber(tempB):
+                #print('tempB is number, temp ', num/(2**denPow))
+                tempB = tempA
+                num -= 1 # temp goes back by step size
+                denPow += 1 
+                num *= 2 # reduce step size in half
+                #print('temp now ', num/(2**denPow))
+            else:
+                #print('tempB is not a number, temp ', num/(2**denPow))
+                num += 1 # increase temperature by step size
+                tempA = tempB
+                tempB = overcool(tempA, Game.DyadicRational(1, denPow))
+        number = convertNumberToGame(numberPart(tempB))
+        inf = tempB - number
+        #print('tempB freezes as ', tempB)
+        #print('inf ', inf)
+        #print('temp ', num/(2**denPow))
+        G -= heatGame(inf, Game.DyadicRational(num, denPow))
+        decomp.append((inf, num/(2**denPow)))
+    decomp.append((G, num/(2**denPow)))
+    return decomp
 
 @lru_cache(maxsize=256)
 def convertNumberToGame(n):
@@ -124,6 +129,21 @@ def convertNumberToGame(n):
         denPow += 1
         n *= 2
     return Game.DyadicRational(int(n), denPow)
+
+@lru_cache(maxsize=256)
+def convertNumberToName(n):
+    """converts dyadic rational to internal name. Will loop infinitely if given any other number"""
+    denPow = 0
+    while n % 1 != 0:
+        denPow += 1
+        n *= 2
+    n = int(n)
+    if denPow == 0:
+        return str(n)
+    elif denPow == 1:
+        return str(n) + "/2"
+    else:
+        return str(n) + "/2^" + str(denPow)
 
 @lru_cache(maxsize=256)
 def convertNameToNumber(s):
