@@ -90,7 +90,7 @@ def thermalDecomposition(G):
     if isNumber(G):
         return [(G, 0)]
     while not isNumber(G):
-        print('G ', G)
+        #print('G ', G)
         denPow = 0 
         num = 0 # num/2^denPow is total temperature cooled
         tempA = tempB = G
