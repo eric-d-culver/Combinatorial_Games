@@ -1,7 +1,7 @@
 #/usr/bin/python3
 
 from lark import Lark, Transformer, GrammarError, Discard
-from games import Game, cmpGames, heatGame, thermalDecomposition
+from games import Game, cmpGames, heatGame, thermalDecomposition, convertNumberToName
 
 heap = {} # stores variables with assignments. Key is variable name, value is Game variable is assigned to
 
@@ -108,9 +108,9 @@ class EvalStatement(Transformer):
 
     def thermal_decomp(self, items):
         res = ""
-        decomp = thermalDecomposition(items[0], 0)
+        decomp = thermalDecomposition(items[0])
         for inf, temp in decomp:
-            res += "$" + str(temp) + "@" + str(inf) + " + " # could be prettier
+            res += "$" + convertNumberToName(temp) + "@" + str(inf) + " + " # could be prettier
         return res[:-2]
 
     def unsigned_integer(self, items):
