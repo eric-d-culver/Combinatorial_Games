@@ -74,6 +74,61 @@ def heatGame(G, H):
         return Game.GeneralGame(left, right)
 
 @lru_cache(maxsize=256)
+def coolGame(G, num, denPow):
+    """cools game G by dyadic rational num/(2**denPow)"""
+    # set denPow to one more than denom_birthday of G, change num proportionally
+    diff = denom_birthday(G) - denPow
+    if diff >= 0:
+        num *= 2**diff
+        denPow += diff
+        num *= 2
+        denPow += 1
+    for i in range(num): # gradually cool G in steps of size 1/(2**denPow)
+        if isNumber(G):
+            break # numbers are frozen 
+        elif isNumberish(G):
+            G = convertNumberToGame(numberPart(G))
+        else:
+            left = [coolGame(GL, 1, denPow) - Game.DyadicRational(1, denPow) for GL in G.LeftOptions]
+            right = [coolGame(GR, 1, denPow) + Game.DyadicRational(1, denPow) for GR in G.RightOptions]
+            G = Game.GeneralGame(left, right)
+    return G
+
+@lru_cache(maxsize=256)
+def freezeGame(G):
+    """cools game G until it is numberish. Also returns the temperature of G"""
+    # set denPow to one more than denom_birthday of G
+    denPow = denom_birthday(G) + 1
+    tot = 0
+    while not isNumberish(G): # gradually cool G in steps of size 1/(2**denPow)
+        tot += 1/(2**denPow)
+        if isNumber(G):
+            break # numbers are frozen 
+        elif isNumberish(G): # shouldn't ever happen
+            G = convertNumberToGame(numberPart(G))
+        else:
+            left = [coolGame(GL, 1, denPow) - Game.DyadicRational(1, denPow) for GL in G.LeftOptions]
+            right = [coolGame(GR, 1, denPow) + Game.DyadicRational(1, denPow) for GR in G.RightOptions]
+            G = Game.GeneralGame(left, right)
+    return (G, tot)
+
+@lru_cache(maxsize=256)
+def thermalDecomposition(G):
+    """returns a list of tuples giving the infinitesimals emitted by G as it cools, and the temperatures at which they are emitted."""
+    decomp = []
+    while True:
+        if isNumber(G):
+            decomp.append(G)
+            break
+        else:
+            H, temp = freezeGame(G)
+            inf = H - convertNumberToGame(numberPart(H))
+            decomp.append((inf, temp))
+            G -= heatGame(inf, convertNumberToGame(temp))
+    return decomp
+
+# below useful now?
+@lru_cache(maxsize=256)
 def overcool(G, H):
     """Cools G by H without worry about past phase transitions"""
     if isNumber(G):
@@ -83,43 +138,43 @@ def overcool(G, H):
         right = [overcool(r, H) + H for r in G.RightOptions]
         return Game.GeneralGame(left, right)
 
-@lru_cache(maxsize=256)
-def thermalDecomposition(G):
-    """returns a list of tuples giving the infinitesimals emitted by G as it cools, and the temperatures at which they are emitted."""
-    decomp = []
-    if isNumber(G):
-        return [(G, 0)]
-    while not isNumber(G):
+#@lru_cache(maxsize=256)
+#def thermalDecomposition(G):
+    #"""returns a list of tuples giving the infinitesimals emitted by G as it cools, and the temperatures at which they are emitted."""
+    #decomp = []
+    #if isNumber(G):
+        #return [(G, 0)]
+    #while not isNumber(G):
         #print('G ', G)
-        denPow = 0 
-        num = 0 # num/2^denPow is total temperature cooled
-        tempA = tempB = G
-        while not (isNumberish(tempB) and not isNumber(tempB)):
+        #denPow = 0 
+        #num = 0 # num/2^denPow is total temperature cooled
+        #tempA = tempB = G
+        #while not (isNumberish(tempB) and not isNumber(tempB)):
             #print('temp ', num/(2**denPow))
             #print('step ', 2**(-denPow))
             #print('tempA ', tempA)
             #print('tempB ', tempB)
-            if isNumber(tempB):
+            #if isNumber(tempB):
                 #print('tempB is number, temp ', num/(2**denPow))
-                tempB = tempA
-                num -= 1 # temp goes back by step size
-                denPow += 1 
-                num *= 2 # reduce step size in half
+                #tempB = tempA
+                #num -= 1 # temp goes back by step size
+                #denPow += 1 
+                #num *= 2 # reduce step size in half
                 #print('temp now ', num/(2**denPow))
-            else:
+            #else:
                 #print('tempB is not a number, temp ', num/(2**denPow))
-                num += 1 # increase temperature by step size
-                tempA = tempB
-                tempB = overcool(tempA, Game.DyadicRational(1, denPow))
-        number = convertNumberToGame(numberPart(tempB))
-        inf = tempB - number
+                #num += 1 # increase temperature by step size
+                #tempA = tempB
+                #tempB = overcool(tempA, Game.DyadicRational(1, denPow))
+        #number = convertNumberToGame(numberPart(tempB))
+        #inf = tempB - number
         #print('tempB freezes as ', tempB)
         #print('inf ', inf)
         #print('temp ', num/(2**denPow))
-        G -= heatGame(inf, Game.DyadicRational(num, denPow))
-        decomp.append((inf, num/(2**denPow)))
-    decomp.append((G, num/(2**denPow)))
-    return decomp
+        #G -= heatGame(inf, Game.DyadicRational(num, denPow))
+        #decomp.append((inf, num/(2**denPow)))
+    #decomp.append((G, num/(2**denPow)))
+    #return decomp
 
 @lru_cache(maxsize=256)
 def convertNumberToGame(n):
@@ -159,43 +214,63 @@ def convertNameToNumber(s):
         return int(lst[0])
 
 @lru_cache(maxsize=256)
-def LeftStop(g):
+def LeftStop(G):
     """returns the Left Stop of a game as an integer type"""
-    if isNumber(g):
-        return convertNameToNumber(g.name)
+    if isNumber(G):
+        return convertNameToNumber(G.name)
     else:
-        return max(RightStop(l) for l in g.LeftOptions)
+        return max(RightStop(GL) for GL in G.LeftOptions)
 
 @lru_cache(maxsize=256)
-def RightStop(g):
+def RightStop(G):
     """returns the Right Stop of a game as an integer type"""
-    if isNumber(g):
-        return convertNameToNumber(g.name)
+    if isNumber(G):
+        return convertNameToNumber(G.name)
     else:
-        return min(LeftStop(r) for r in g.RightOptions)
+        return min(LeftStop(GR) for GR in G.RightOptions)
 
 @lru_cache(maxsize=256)
-def isNumber(g):
-    """returns True if g is a number. Uses the fact that numbers have all negative incentives."""
-    return all(cmpGames(l, g) == -1 for l in g.LeftOptions) and all(cmpGames(g, r) == -1 for r in g.RightOptions)
+def isNumber(G):
+    """returns True if G is a number. Uses the fact that numbers have all negative incentives."""
+    return all(cmpGames(GL, G) == -1 for GL in G.LeftOptions) and all(cmpGames(G, GR) == -1 for GR in G.RightOptions)
 
 @lru_cache(maxsize=256)
-def isNumberish(g):
-    """returns True if g is a number plus an infinitesimal"""
-    return LeftStop(g) == RightStop(g)
+def isNumberish(G):
+    """returns True if G is a number plus an infinitesimal"""
+    return LeftStop(G) == RightStop(G)
 
 @lru_cache(maxsize=256)
-def isInfinitesimal(g):
-    """returns True if g is an infinitesimal"""
-    return LeftStop(g) == 0 and RightStop(g) == 0
+def isInfinitesimal(G):
+    """returns True if G is an infinitesimal"""
+    return LeftStop(G) == 0 and RightStop(G) == 0
 
 @lru_cache(maxsize=256)
-def numberPart(g):
-    """returns number g is infinitesimally close to, raises error if g is not Numberish"""
-    if isNumberish(g):
-        return LeftStop(g)
+def numberPart(G):
+    """returns number G is infinitesimally close to, raises error if G is not Numberish"""
+    if isNumberish(G):
+        return LeftStop(G)
     else:
-        raise Error
+        raise ValueError("Input must be Numberish\n")
+
+@lru_cache(maxsize=256)
+def birthday(G):
+    """returns the birthday of G in its current form"""
+    if not G.LeftOptions and not G.RightOptions:
+        return 0
+    elif not G.RightOptions:
+        return max(birthday(GL) for GL in G.LeftOptions) + 1
+    elif not G.LeftOptions:
+        return max(birthday(GR) for GR in G.RightOptions) + 1
+    else:
+        return max(max(birthday(GL) for GL in G.LeftOptions), max(birthday(GR) for GR in G.RightOptions)) + 1
+
+@lru_cache(maxsize=256)
+def denom_birthday(G):
+    """returns the 'denominator birthday' of G. This is an approximation of the highest power of 2 in the options of G."""
+    if isNumber(G):
+        return birthday(G)
+    else: # don't need to check for existence of options as if they don't exist, G is a number
+        return max(max(denom_birthday(GL) for GL in G.LeftOptions), max(denom_birthday(GR) for GR in G.RightOptions))
 
 # methods for converting games to canonical form
 

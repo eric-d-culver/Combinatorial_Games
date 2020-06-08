@@ -111,7 +111,7 @@ class EvalStatement(Transformer):
         decomp = thermalDecomposition(items[0])
         for inf, temp in decomp[:-1]: # last element of decomp is mean value
             res += "$" + convertNumberToName(temp) + "@" + str(inf) + " + " # could be prettier
-        res += str(decomp[-1][0])
+        res += str(decomp[-1])
         return res
 
     def unsigned_integer(self, items):
