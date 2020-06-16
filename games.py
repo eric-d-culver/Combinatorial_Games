@@ -14,26 +14,26 @@ def cmpGames(G,H):
     for GL in G.LeftOptions:
         #print('Calling: ', GL, ' ', H)
         cmp = cmpGames(GL,H)
-        if cmp is 1 or cmp is 0:
+        if cmp == 1 or cmp == 0:
             goodLeftMove = True
             break
     for HR in H.RightOptions:
         #print('Calling: ', G, ' ', HR)
         cmp = cmpGames(G,HR)
-        if cmp is 1 or cmp is 0:
+        if cmp == 1 or cmp == 0:
             goodLeftMove = True
             break
     #print('Good Left Move: ', goodLeftMove)
     for GR in G.RightOptions:
         #print('Calling: ', GR, ' ', H)
         cmp = cmpGames(GR,H)
-        if cmp is -1 or cmp is 0:
+        if cmp == -1 or cmp == 0:
             goodRightMove = True
             break
     for HL in H.LeftOptions:
         #print('Calling: ', G, ' ', HL)
         cmp = cmpGames(G,HL)
-        if cmp is -1 or cmp is 0:
+        if cmp == -1 or cmp == 0:
             goodRightMove = True
             break
     #print('Good Right Move: ', goodRightMove)
@@ -83,6 +83,7 @@ def coolGame(G, num, denPow):
         denPow += diff
         num *= 2
         denPow += 1
+    #print('cool denPow ', denPow, ' num ', num)
     for i in range(num): # gradually cool G in steps of size 1/(2**denPow)
         if isNumber(G):
             break # numbers are frozen 
@@ -100,6 +101,7 @@ def freezeGame(G):
     # set denPow to one more than denom_birthday of G
     denPow = denom_birthday(G) + 1
     tot = 0
+    #print('freeze denPow ', denPow)
     while not isNumberish(G): # gradually cool G in steps of size 1/(2**denPow)
         tot += 1/(2**denPow)
         if isNumber(G):
@@ -117,11 +119,14 @@ def thermalDecomposition(G):
     """returns a list of tuples giving the infinitesimals emitted by G as it cools, and the temperatures at which they are emitted."""
     decomp = []
     while True:
+        #print('G ', G)
         if isNumber(G):
             decomp.append(G)
             break
         else:
             H, temp = freezeGame(G)
+            #print('frozen G', H)
+            #print('temp ', temp)
             inf = H - convertNumberToGame(numberPart(H))
             decomp.append((inf, temp))
             G -= heatGame(inf, convertNumberToGame(temp))
@@ -266,11 +271,13 @@ def birthday(G):
 
 @lru_cache(maxsize=256)
 def denom_birthday(G):
-    """returns the 'denominator birthday' of G. This is an approximation of the highest power of 2 in the options of G."""
-    if isNumber(G):
-        return birthday(G)
-    else: # don't need to check for existence of options as if they don't exist, G is a number
-        return max(max(denom_birthday(GL) for GL in G.LeftOptions), max(denom_birthday(GR) for GR in G.RightOptions))
+    """returns the 'denominator birthday' of G. This is an approximation of the highest power of 2 possible in the critical points of G's thermograph."""
+    if not G.LeftOptions or not G.RightOptions: # then G is an integer
+        return 0
+    #elif isNumber(G): # G is not an integer
+        #return max(max(denom_birthday(GL) for GL in G.LeftOptions), max(denom_birthday(GR) for GR in G.RightOptions)) + 1
+    else:
+        return max(max(denom_birthday(GL) for GL in G.LeftOptions), max(denom_birthday(GR) for GR in G.RightOptions)) + 1
 
 # methods for converting games to canonical form
 
