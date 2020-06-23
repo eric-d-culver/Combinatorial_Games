@@ -271,7 +271,7 @@ def birthday(G):
 
 @lru_cache(maxsize=256)
 def denom_birthday(G):
-    """returns the 'denominator birthday' of G. This is an approximation of the highest power of 2 possible in the critical points of G's thermograph."""
+    """returns the 'denominator birthday' of G, which is the maximum length path of play from G to an integer. This is an approximation of the highest power of 2 possible in the critical points of G's thermograph."""
     if not G.LeftOptions or not G.RightOptions: # then G is an integer
         return 0
     #elif isNumber(G): # G is not an integer
@@ -450,25 +450,25 @@ def generateName(left, right):
     else:
         return name
 
-@lru_cache(maxsize=256)
-def isZero(g):
-    """returns True if g is zero"""
-    return not g.LeftOptions and not g.RightOptions
-
-@lru_cache(maxsize=256)
-def isPositiveInt(g):
-    """returns True if g is a positive integer"""
-    return not g.RightOptions and g.LeftOptions
-
-@lru_cache(maxsize=256)
-def isNegativeInt(g):
-    """returns True if g is a negative integer"""
-    return not g.LeftOptions and g.RightOptions
-
-@lru_cache(maxsize=256)
-def isDyadicRational(g):
-    """returns True if g is a dyadic rational."""
-    return len(g.LeftOptions) == 1 and len(g.RightOptions) == 1 and isNumber(g.LeftOptions[0]) and isNumber(g.RightOptions[0]) and cmpGames(g.LeftOptions[0], g.RightOptions[0]) == -1
+#@lru_cache(maxsize=256)
+#def isZero(g):
+    #"""returns True if g is zero"""
+    #return not g.LeftOptions and not g.RightOptions
+#
+#@lru_cache(maxsize=256)
+#def isPositiveInt(g):
+    #"""returns True if g is a positive integer"""
+    #return not g.RightOptions and g.LeftOptions
+#
+##@lru_cache(maxsize=256)
+#def isNegativeInt(g):
+    #"""returns True if g is a negative integer"""
+    #return not g.LeftOptions and g.RightOptions
+#
+#@lru_cache(maxsize=256)
+#def isDyadicRational(g):
+    #"""returns True if g is a dyadic rational."""
+    #return len(g.LeftOptions) == 1 and len(g.RightOptions) == 1 and isNumber(g.LeftOptions[0]) and isNumber(g.RightOptions[0]) and cmpGames(g.LeftOptions[0], g.RightOptions[0]) == -1
 
 @lru_cache(maxsize=256)
 def isNumberStar(g):
@@ -725,6 +725,9 @@ class Game:
             right = [r for r in right if r not in rightReversible]
             left.extend(leftReversesTo)
             right.extend(rightReversesTo)
+        # sort remaining elements of left and right based on hash (this ensures the name of a game is always the same)
+        left.sort(key = lambda x: hash(x.name))
+        right.sort(key = lambda x: hash(x.name))
         # recognizes common games and gives them the appropriate name
         name = generateName(left, right)
         return cls(left, right, name)
